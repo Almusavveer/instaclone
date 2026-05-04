@@ -15,6 +15,8 @@ const {
 const { createpost } = require("../controllers/post.controllers");
 // 📦 Import middleware for token verification
 const { verifyToken } = require("../middleware/token.middleware");
+
+const { getPosts ,getMyPosts } = require("../controllers/post.controllers");
 // 🔌 Initialize router
 const router = Router();
 
@@ -32,5 +34,9 @@ router.post("/logout", logout);
 router.get("/refresh-token", refreshToken);
 // 🚪 POST route for logging out all active sessions (authentication required)
 router.post("/logout-all", verifyToken, logoutAll);
+// 📄 GET route for fetching all posts (authentication required)
+router.get("/posts", verifyToken, getPosts);
+// 📄 GET route for fetching current user's posts (authentication required)
+router.get("/my-posts", verifyToken, getMyPosts);
 
 module.exports = router;

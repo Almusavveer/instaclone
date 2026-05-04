@@ -188,7 +188,7 @@ async function logout(req, res) {
 async function getUser(req, res) {
   try {
     // 🔍 Fetch user data without password
-    const user = await User.findOne({ email: req.user }).select("-password");
+    const user = await User.findOne({ email: req.user.email }).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
