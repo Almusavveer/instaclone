@@ -57,4 +57,40 @@ async function getMyPosts(req, res) {
     res.status(500).json({ message: error.message });
   }
 }
-module.exports = { createpost, getPosts, getMyPosts };
+
+async function search(req, res) {
+     try {
+    const { q } = req.query;
+    if (!q) return res.json({ users: [] });
+
+    const users = await User.find({
+      $or: [
+        { name: { $regex: q, $options: 'i' } },
+        { email: { $regex: q, $options: 'i' } }
+      ]
+    }).select('_id name email avatar');  // exclude password
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+async function anotheruserprofile(req, res) {
+    try {
+    const user = await User.findById(req.params.userId).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+async function Getpostsofaspecificuser(req, res) {
+     try {
+    const posts = await Post.find({ author: req.params.userId })
+      .populate('author', 'name')
+      .sort({ createdAt: -1 });
+    res.json({ posts });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+module.exports = { createpost, getPosts, getMyPosts ,search,anotheruserprofile,Getpostsofaspecificuser };

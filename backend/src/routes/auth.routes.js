@@ -6,7 +6,7 @@ const {
   login,
   logout,
   getUser,
-  refreshToken,
+  rotaterefreshToken,
   logoutAll,
 } = require("../controllers/auth.controllers");
 // 📝 Comment: login import can be used from destructuring above
@@ -14,7 +14,7 @@ const {
 // 📦 Import post controller function
 const { createpost } = require("../controllers/post.controllers");
 // 📦 Import middleware for token verification
-const { verifyToken } = require("../middleware/token.middleware");
+const { verifyToken ,verifyTokenfrontend} = require("../middleware/token.middleware");
 
 const { getPosts ,getMyPosts } = require("../controllers/post.controllers");
 // 🔌 Initialize router
@@ -31,12 +31,15 @@ router.get("/user", verifyToken, getUser);
 // 🚪 POST route for user logout (no authentication required)
 router.post("/logout", logout);
 // 🔄 GET route for refreshing access token (no authentication required)
-router.get("/refresh-token", refreshToken);
+router.get("/refresh-token", rotaterefreshToken);
 // 🚪 POST route for logging out all active sessions (authentication required)
 router.post("/logout-all", verifyToken, logoutAll);
 // 📄 GET route for fetching all posts (authentication required)
 router.get("/posts", verifyToken, getPosts);
 // 📄 GET route for fetching current user's posts (authentication required)
 router.get("/my-posts", verifyToken, getMyPosts);
-
+router.get("/verify", verifyTokenfrontend, (req, res) => {
+  // Because verifyTokenfrontend called next(), we reach here
+  res.status(200).json({ valid: true, user: req.user });
+});
 module.exports = router;

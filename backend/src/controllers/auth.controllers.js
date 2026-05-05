@@ -5,6 +5,7 @@ const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+
 // 📝 Register a new user with hashed password and JWT tokens.
 async function register(req, res) {
   try {
@@ -53,7 +54,7 @@ async function register(req, res) {
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -101,9 +102,11 @@ async function login(req, res) {
   if (!match) {
     return res.status(401).json({ message: "wrong password" });
   }
+  // let refreshToken = req.cookies.refreshToken;
+  //   res.clearCookie("refreshToken");
 
   // 🔄 Create longer-lived refresh token (7 days)
-  const refreshToken = jwt.sign(
+ const refreshToken = jwt.sign(
     {
       email: userExists.email,
     },
@@ -112,44 +115,167 @@ async function login(req, res) {
       expiresIn: "7d",
     },
   );
+  const UAParser = require("ua-parser-js");
+
+// 📱 Detect device info
+const userAgent = req.get("User-Agent");
+const ip = req.ip;
+
+const parser = new UAParser(userAgent);
+const ua = parser.getResult();
+
+const deviceType = ua.device.type || "desktop";
+const os = ua.os.name || "Unknown";
+
+// optional from frontend
+const deviceName = req.body.deviceName || "Unknown Device";
+
+// 🔍 Check existing session (same device)
+let existingSession = await Session.findOne({
+  user: userExists._id,
+  userAgent,
+  ip
+});
+
+let session;
+
+
+if (existingSession) {
+  // ✅ SAME DEVICE → update
+  existingSession.count += 1;
+  existingSession.expiresAt = new Date(Date.now() + 7*24*60*60*1000);
+
+  await existingSession.save();
+  session = existingSession;
+
+} else {
+  // ❌ NEW DEVICE → create new session
+
+  // refreshToken = jwt.sign(
+  //   { email: userExists.email },
+  //   process.env.JWT_SECRET,
+  //   { expiresIn: "7d" }
+  // );
 
   const hashedToken = crypto
     .createHash("sha256")
     .update(refreshToken)
     .digest("hex");
-  const session = await Session.create({
+
+  session = await Session.create({
     user: userExists._id,
     refreshToken: hashedToken,
-    ip: req.ip,
-    userAgent: req.get("User-Agent"),
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    ip,
+    userAgent,
+    deviceName,
+    deviceType,
+    os,
+    expiresAt: new Date(Date.now() + 7*24*60*60*1000),
   });
 
+  // 🍪 set cookie ONLY for new session
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+}
+  // const userAgent = req.get("User-Agent");
+  // const ip = req.ip;
 
-  // ⚡ Create short-lived access token (15 minutes)
+  // // 🔍 Check if session already exists for same device
+  // let existingSession = await Session.findOne({
+  //   user: userExists._id,
+  //   userAgent: userAgent,
+  //   ip: ip,
+  // });
+
+  // let session;
+
+  // if (existingSession) {
+  //   // ✅ SAME DEVICE → reuse session
+  //   existingSession.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  //   existingSession.count+=1
+  //   await existingSession.save();
+
+  //   session = existingSession;
+  // } else {
+  //   // ❌ NEW DEVICE → create new session
+
+  //   const hashedToken = crypto
+  //     .createHash("sha256")
+  //     .update(refreshToken)
+  //     .digest("hex");
+
+  //   session = await Session.create({
+  //     user: userExists._id,
+  //     refreshToken: hashedToken,
+  //     ip,
+  //     userAgent,
+  //     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  //   });
+  //   // const hashedToken = crypto
+  //   //   .createHash("sha256")
+  //   //   .update(refreshToken)
+  //   //   .digest("hex");
+  //   // const session = await Session.create({
+  //   //   user: userExists._id,
+  //   //   refreshToken: hashedToken,
+  //   //   ip: req.ip,
+  //   //   userAgent: req.get("User-Agent"),
+  //   //   expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+  //   // });
+
+  //   res.cookie("refreshToken", refreshToken, {
+  //     httpOnly: true,
+  //     secure: process.env.NODE_ENV === "production",
+  //     sameSite: "strict",
+  //     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  //   });
+
+  //   // ⚡ Create short-lived access token (15 minutes)
+  //   const accessToken = jwt.sign(
+  //     {
+  //       email: userExists.email,
+  //       sessionId: session._id, // Include session ID in access token
+  //     },
+  //     process.env.JWT_SECRET,
+  //     {
+  //       expiresIn: "15m",
+  //     },
+  //   );
+
+  //   return res.status(200).json({
+  //     message: "Login successful",
+  //     user: userExists,
+  //     refreshToken: refreshToken,
+  //     accessToken: accessToken,
+  //   });
+  // }
   const accessToken = jwt.sign(
-    {
-      email: userExists.email,
-      sessionId: session._id, // Include session ID in access token
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "15m",
-    },
-  );
-
-  return res.status(200).json({
-    message: "Login successful",
-    user: userExists,
-    refreshToken: refreshToken,
-    accessToken: accessToken,
+      {
+        email: userExists.email,
+        sessionId: session._id, // Include session ID in access token
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "15m",
+      },
+    );
+res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+  
+   return res.status(200).json({
+      message: "Login successful",
+      user: userExists,
+      refreshToken: refreshToken,
+      accessToken: accessToken,
+    });
 }
 
 // 🚪 Clear authentication token cookie on logout
@@ -188,7 +314,9 @@ async function logout(req, res) {
 async function getUser(req, res) {
   try {
     // 🔍 Fetch user data without password
-    const user = await User.findOne({ email: req.user.email }).select("-password");
+    const user = await User.findOne({ email: req.user.email }).select(
+      "-password",
+    );
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -200,7 +328,7 @@ async function getUser(req, res) {
 }
 
 // 🔄 Refresh access token using valid refresh token
-async function refreshToken(req, res) {
+async function rotaterefreshToken(req, res) {
   // 🍪 Extract refresh token from cookies
   const refreshToken = req.cookies.refreshToken;
   if (!refreshToken) {
@@ -280,6 +408,7 @@ async function refreshToken(req, res) {
     refreshToken: newRefreshToken,
   });
 }
+
 // logout from all devices
 async function logoutAll(req, res) {
   const refreshToken = req.cookies.refreshToken;
@@ -291,7 +420,7 @@ async function logoutAll(req, res) {
     .update(refreshToken)
     .digest("hex");
 
-   // 🔍 Find session to get user ID and updateing the revoked
+  // 🔍 Find session to get user ID and updateing the revoked
   const session = await Session.updateMany(
     {
       refreshToken: hashedToken,
@@ -301,6 +430,16 @@ async function logoutAll(req, res) {
   );
 
   res.clearCookie("refreshToken");
-  return res.status(200).json({ message: "Logged out from all devices successfully" });
+  return res
+    .status(200)
+    .json({ message: "Logged out from all devices successfully" });
 }
-module.exports = { register, login, logout, getUser, refreshToken , logoutAll};
+
+module.exports = {
+  register,
+  login,
+  logout,
+  getUser,
+  rotaterefreshToken,
+  logoutAll,
+};
