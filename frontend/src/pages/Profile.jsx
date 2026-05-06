@@ -8,6 +8,7 @@ export default function Profile() {
   const [showResults, setShowResults] = useState(false);
   const searchTimeout = useRef(null);
   const [user, setUser] = useState({});
+  const [userId, setUserId] = useState(null);
   const [stats, setStats] = useState({ followers: 0, following: 0 });
   const [myPosts, setMyPosts] = useState([]);
   const [allPosts, setAllPosts] = useState([]);
@@ -16,7 +17,25 @@ export default function Profile() {
   const [showModal, setShowModal] = useState(false);
   const [newPost, setNewPost] = useState({ title: "", content: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // NEW: state for viewing a specific user's posts
+  const [viewingUser, setViewingUser] = useState(null);
+  const [viewingPosts, setViewingPosts] = useState([]);
+
   const navigate = useNavigate();
+
+  // Fetch posts of a selected user
+  const fetchUserPosts = async (userId) => {
+    try {
+      const res = await axios.get(`http://localhost:3000/api/post/user-posts/${userId}`, {
+        withCredentials: true,
+      });
+      setViewingPosts(Array.isArray(res.data) ? res.data : res.data.posts || []);
+    } catch (err) {
+      console.error("Failed to load user posts:", err);
+      alert("Could not load posts");
+    }
+  };
 
   // Fetch all data
   const fetchData = async () => {
@@ -35,7 +54,10 @@ export default function Profile() {
           axios.get("http://localhost:3000/api/auth/posts", headers),
         ]);
 
-      setUser(userRes.data.user || userRes.data);
+      const fetchedUser = userRes.data.user || userRes.data;
+      setUser(fetchedUser);
+      setUserId(fetchedUser._id || fetchedUser.id);
+
       setStats({
         followers: followingStatsRes.data.followers || 0,
         following: followingStatsRes.data.following || 0,
@@ -73,6 +95,66 @@ export default function Profile() {
     } catch (err) {
       console.error("Logout error:", err);
       navigate("/login");
+    }
+  };
+
+  // Update likes in both local state arrays (optimistic update)
+  const updateLocalPost = (postId, updateLikesFn) => {
+    setAllPosts((prev) =>
+      prev.map((post) =>
+        post._id === postId
+          ? { ...post, likes: updateLikesFn(post.likes || []) }
+          : post
+      )
+    );
+    setMyPosts((prev) =>
+      prev.map((post) =>
+        post._id === postId
+          ? { ...post, likes: updateLikesFn(post.likes || []) }
+          : post
+      )
+    );
+    // Also update viewingPosts if we are viewing someone's posts
+    setViewingPosts((prev) =>
+      prev.map((post) =>
+        post._id === postId
+          ? { ...post, likes: updateLikesFn(post.likes || []) }
+          : post
+      )
+    );
+  };
+
+  const handleLikeToggle = async (postId, isCurrentlyLiked) => {
+    if (!userId) return;
+
+    const previousAllPosts = [...allPosts];
+    const previousMyPosts = [...myPosts];
+    const previousViewingPosts = [...viewingPosts];
+
+    updateLocalPost(postId, (likes) =>
+      isCurrentlyLiked
+        ? likes.filter(id => id !== userId)
+        : [...likes, userId]
+    );
+
+    try {
+      if (isCurrentlyLiked) {
+        await axios.delete(`http://localhost:3000/api/post/${postId}/like`, {
+          withCredentials: true,
+        });
+      } else {
+        await axios.post(
+          `http://localhost:3000/api/post/${postId}/like`,
+          {},
+          { withCredentials: true }
+        );
+      }
+    } catch (err) {
+      // Rollback on error
+      setAllPosts(previousAllPosts);
+      setMyPosts(previousMyPosts);
+      setViewingPosts(previousViewingPosts);
+      alert(err.response?.data?.message || "Like failed");
     }
   };
 
@@ -117,8 +199,7 @@ export default function Profile() {
         { withCredentials: true },
       );
 
-      // Refresh posts after successful creation
-      await fetchData();
+      await fetchData(); // refresh everything
       setShowModal(false);
       setNewPost({ title: "", content: "" });
     } catch (err) {
@@ -143,15 +224,21 @@ export default function Profile() {
     searchTimeout.current = setTimeout(async () => {
       try {
         const res = await axios.get(
-          `http://localhost:3000/api/auth/search?q=${searchQuery}`,
-          {
-            withCredentials: true,
-          },
+          `http://localhost:3000/api/find/search?q=${searchQuery}`,
+          { withCredentials: true },
         );
-        setSearchResults(res.data.users);
-        setShowResults(true);
+        const users = res.data?.users;
+        if (Array.isArray(users)) {
+          setSearchResults(users);
+          setShowResults(true);
+        } else {
+          setSearchResults([]);
+          setShowResults(false);
+        }
       } catch (err) {
         console.error("Search error:", err);
+        setSearchResults([]);
+        setShowResults(false);
       }
     }, 300);
   }, [searchQuery]);
@@ -165,7 +252,13 @@ export default function Profile() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  const displayedPosts = activeTab === "feed" ? allPosts : myPosts;
+  // Determine which posts to display
+  let displayedPosts;
+  if (viewingUser) {
+    displayedPosts = viewingPosts;
+  } else {
+    displayedPosts = activeTab === "feed" ? allPosts : myPosts;
+  }
 
   if (isLoading) {
     return (
@@ -193,13 +286,19 @@ export default function Profile() {
         <nav>
           <button
             className={`nav-item ${activeTab === "feed" ? "active" : ""}`}
-            onClick={() => setActiveTab("feed")}
+            onClick={() => {
+              setActiveTab("feed");
+              setViewingUser(null); // Reset when changing tabs
+            }}
           >
             <span>🏠</span> Feed
           </button>
           <button
             className={`nav-item ${activeTab === "myPosts" ? "active" : ""}`}
-            onClick={() => setActiveTab("myPosts")}
+            onClick={() => {
+              setActiveTab("myPosts");
+              setViewingUser(null);
+            }}
           >
             <span>📝</span> My Posts
           </button>
@@ -235,23 +334,24 @@ export default function Profile() {
             </div>
             {showResults && searchResults.length > 0 && (
               <div className="search-results">
-                {searchResults.map((user) => (
+                {searchResults.map((userItem) => (
                   <div
-                    key={user._id}
+                    key={userItem._id}
                     className="search-result-item"
-                    onClick={() => {
-                      navigate(`/profile/${user._id}`);
+                    onClick={async () => {
+                      setViewingUser(userItem);
+                      await fetchUserPosts(userItem._id);
                       setShowResults(false);
                       setSearchQuery("");
                     }}
                   >
                     <img
-                      src={`https://ui-avatars.com/api/?name=${user.name}&background=6366f1&color=fff`}
+                      src={`https://ui-avatars.com/api/?name=${userItem.name}&background=6366f1&color=fff`}
                       alt="avatar"
                     />
                     <div>
-                      <div className="result-name">{user.name}</div>
-                      <div className="result-email">{user.email}</div>
+                      <div className="result-name">{userItem.name}</div>
+                      <div className="result-email">{userItem.email}</div>
                     </div>
                   </div>
                 ))}
@@ -266,105 +366,146 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* PROFILE HEADER */}
-        <div className="profile-header">
-          <div className="avatar">
-            <img
-              src={`https://ui-avatars.com/api/?name=${user.name || user.username || "User"}&background=6366f1&color=fff`}
-              alt="avatar"
-            />
-          </div>
-          <div className="profile-info">
-            <div className="username-row">
-              <h2>{user.name || user.username || "Username"}</h2>
-              <span className="badge">LIVE</span>
-              <button className="follow-btn">Follow</button>
-            </div>
-            <div className="stats">
-              <div>
-                <strong>{myPosts.length}</strong> posts
-              </div>
-              <div>
-                <strong>{stats.followers}</strong> followers
-              </div>
-              <div>
-                <strong>{stats.following}</strong> following
-              </div>
-            </div>
-            <div className="bio">
-              <p>
-                <strong>{user.name || user.username}</strong>{" "}
-                {user.bio || "UI Designer | Traveler | Lifestyle Blogger"}
-              </p>
-              <span className="location">
-                📍 {user.location || "Dubai, UAE"}
-              </span>
+        {/* Show "Viewing user" banner when a user is selected */}
+        {viewingUser && (
+          <div className="viewing-banner">
+            <button 
+              className="back-btn"
+              onClick={() => setViewingUser(null)}
+            >
+              ← Back to {activeTab === "feed" ? "Feed" : "My Posts"}
+            </button>
+            <div className="viewing-info">
+              <img
+                src={`https://ui-avatars.com/api/?name=${viewingUser.name}&background=6366f1&color=fff`}
+                alt="avatar"
+                className="viewing-avatar"
+              />
+              <span>Posts by <strong>{viewingUser.name}</strong></span>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* STORY HIGHLIGHTS */}
-        <div className="story-highlights">
-          <div className="highlight">
-            <div className="circle">+</div>
-            <span>New</span>
-          </div>
-          <div className="highlight">
-            <div className="circle">🌿</div>
-            <span>Garden</span>
-          </div>
-          <div className="highlight">
-            <div className="circle">📷</div>
-            <span>Cameras</span>
-          </div>
-          <div className="highlight">
-            <div className="circle">🐾</div>
-            <span>Wildlife</span>
-          </div>
-        </div>
-
-        {/* TABS */}
-        <div className="tabs">
-          <button
-            className={activeTab === "feed" ? "tab-active" : ""}
-            onClick={() => setActiveTab("feed")}
-          >
-            Feed
-          </button>
-          <button
-            className={activeTab === "myPosts" ? "tab-active" : ""}
-            onClick={() => setActiveTab("myPosts")}
-          >
-            My Posts
-          </button>
-          <button onClick={() => setActiveTab("reels")}>Reels</button>
-          <button onClick={() => setActiveTab("saved")}>Saved</button>
-        </div>
-
-        {/* POST GRID */}
-        <div className="post-grid">
-          {displayedPosts.map((post) => (
-            <div key={post._id} className="post-card">
-              <div className="post-image">
-                <div className="image-placeholder">📸</div>
+        {/* PROFILE HEADER (only show if not viewing another user) */}
+        {!viewingUser && (
+          <>
+            <div className="profile-header">
+              <div className="avatar">
+                <img
+                  src={`https://ui-avatars.com/api/?name=${user.name || user.username || "User"}&background=6366f1&color=fff`}
+                  alt="avatar"
+                />
               </div>
-              <div className="post-caption">
-                <p>
-                  <strong>{post.author?.name || user.name}</strong> {post.title}
-                </p>
-                <p className="caption-text">{post.content}</p>
-                <div className="post-meta">
-                  <span>❤️ {post.likes || 0} likes</span>
-                  <span className="post-time">
-                    🕒 {formatTime(post.createdAt)}
+              <div className="profile-info">
+                <div className="username-row">
+                  <h2>{user.name || user.username || "Username"}</h2>
+                  <span className="badge">LIVE</span>
+                  <button className="follow-btn">Follow</button>
+                </div>
+                <div className="stats">
+                  <div>
+                    <strong>{myPosts.length}</strong> posts
+                  </div>
+                  <div>
+                    <strong>{stats.followers}</strong> followers
+                  </div>
+                  <div>
+                    <strong>{stats.following}</strong> following
+                  </div>
+                </div>
+                <div className="bio">
+                  <p>
+                    <strong>{user.name || user.username}</strong>{" "}
+                    {user.bio || "UI Designer | Traveler | Lifestyle Blogger"}
+                  </p>
+                  <span className="location">
+                    📍 {user.location || "Dubai, UAE"}
                   </span>
                 </div>
               </div>
             </div>
-          ))}
+
+            {/* STORY HIGHLIGHTS */}
+            <div className="story-highlights">
+              <div className="highlight">
+                <div className="circle">+</div>
+                <span>New</span>
+              </div>
+              <div className="highlight">
+                <div className="circle">🌿</div>
+                <span>Garden</span>
+              </div>
+              <div className="highlight">
+                <div className="circle">📷</div>
+                <span>Cameras</span>
+              </div>
+              <div className="highlight">
+                <div className="circle">🐾</div>
+                <span>Wildlife</span>
+              </div>
+            </div>
+
+            {/* TABS */}
+            <div className="tabs">
+              <button
+                className={activeTab === "feed" ? "tab-active" : ""}
+                onClick={() => setActiveTab("feed")}
+              >
+                Feed
+              </button>
+              <button
+                className={activeTab === "myPosts" ? "tab-active" : ""}
+                onClick={() => setActiveTab("myPosts")}
+              >
+                My Posts
+              </button>
+              <button onClick={() => setActiveTab("reels")}>Reels</button>
+              <button onClick={() => setActiveTab("saved")}>Saved</button>
+            </div>
+          </>
+        )}
+
+        {/* POST GRID */}
+        <div className="post-grid">
+          {displayedPosts.map((post) => {
+            const likesArray = post.likes || [];
+            const isLiked = userId && likesArray.includes(userId);
+            const likeCount = likesArray.length;
+
+            return (
+              <div key={post._id} className="post-card">
+                <div className="post-image">
+                  <div className="image-placeholder">📸</div>
+                </div>
+                <div className="post-caption">
+                  <p>
+                    <strong>{post.author?.name || user.name}</strong> {post.title}
+                  </p>
+                  <p className="caption-text">{post.content}</p>
+                  <div className="post-meta">
+                    <div className="like-section">
+                      <button
+                        className={`like-btn ${isLiked ? "liked" : ""}`}
+                        onClick={() => handleLikeToggle(post._id, isLiked)}
+                        aria-label={isLiked ? "Unlike" : "Like"}
+                      >
+                        {isLiked ? "❤️🔥" : "❤️"}
+                      </button>
+                      <span className="like-count">{likeCount} likes</span>
+                    </div>
+                    <span className="post-time">
+                      🕒 {formatTime(post.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
           {displayedPosts.length === 0 && (
             <div className="no-posts">
-              {activeTab === "feed"
+              {viewingUser
+                ? `No posts from ${viewingUser.name} yet.`
+                : activeTab === "feed"
                 ? "No posts from others yet."
                 : "You haven't created any posts yet. Click + Create a post!"}
             </div>
@@ -432,6 +573,7 @@ export default function Profile() {
       )}
 
       <style>{`
+        /* All your existing styles remain exactly the same – plus new styles for viewing banner */
         * {
           margin: 0;
           padding: 0;
@@ -603,6 +745,44 @@ export default function Profile() {
 
         .create-post-btn:hover {
           background: #0077c2;
+        }
+
+        /* VIEWING BANNER */
+        .viewing-banner {
+          background: white;
+          border-radius: 24px;
+          padding: 16px 24px;
+          margin-bottom: 30px;
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .back-btn {
+          background: #efefef;
+          border: none;
+          padding: 8px 20px;
+          border-radius: 30px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+          background: #e2e2e2;
+        }
+
+        .viewing-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .viewing-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
         }
 
         /* PROFILE HEADER */
@@ -790,6 +970,33 @@ export default function Profile() {
           color: #555;
         }
 
+        .like-section {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .like-btn {
+          background: none;
+          border: none;
+          font-size: 18px;
+          cursor: pointer;
+          transition: transform 0.1s ease;
+          padding: 4px;
+        }
+
+        .like-btn:hover {
+          transform: scale(1.1);
+        }
+
+        .like-btn.liked {
+          color: #ed4956;
+        }
+
+        .like-count {
+          font-weight: 500;
+        }
+
         .post-time {
           font-size: 11px;
           color: #999;
@@ -944,6 +1151,10 @@ export default function Profile() {
           .modal-content {
             width: 95%;
             padding: 20px;
+          }
+          .viewing-banner {
+            flex-direction: column;
+            align-items: flex-start;
           }
         }
       `}</style>
