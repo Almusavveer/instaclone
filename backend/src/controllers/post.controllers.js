@@ -233,6 +233,38 @@ const getUserPosts = async (req, res) => {
 //   }
 // };
 
+async function getPostById(req, res) {
+  try {
+    const { postId } = req.params;
+    const post = await Post.findById(postId)
+      .populate("author", "name username avatar")   // ✅ only populate author
+      // .populate("likes", "name")  // optional – if you want liked by user names
+      .lean();
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Add virtual counts if needed
+    post.likesCount = post.likes?.length || 0;
+
+    res.status(200).json({ post });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// controllers/userController.js
+async function anotheruserprofile(req, res) {
+  try {
+    const user = await User.findById(req.params.userId).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
 module.exports = {
   createpost,
   getPosts,
@@ -245,4 +277,6 @@ module.exports = {
   unlikePost,
   checkIfLiked,
   getLikeCount,
+  getPostById,
+  anotheruserprofile
 };

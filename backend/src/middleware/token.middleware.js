@@ -3,9 +3,10 @@ const User = require("../model/user");
 
 function verifyToken(req, res, next) {
  const token = req.cookies.refreshToken;
-
+  console.log("token from middleware:",token);
+  
   if (!token) {
-    return res.status(401).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: "Unauthorized po" });
   }
 
   try {
@@ -21,7 +22,7 @@ function verifyToken(req, res, next) {
 
 
 function verifyTokenfrontend(req, res, next) {  // ✅ add 'next' parameter
-  const token = req.cookies.refreshToken;
+  const token = req.headers.refreshToken;
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized" });

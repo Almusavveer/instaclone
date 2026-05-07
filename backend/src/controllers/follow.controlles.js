@@ -112,4 +112,47 @@ const countStats = async (req, res) => {
   }
 };
 
-module.exports = { followUser, getFollowers ,getFollowing , countStats};
+async function unfollowUser(req, res) {
+  try {
+    const currentUser = await User.findOne({ email: req.user.email });
+    const { followingId } = req.body; // ID of the user to unfollow
+
+    if (!followingId) {
+      return res.status(400).json({ message: "followingId is required" });
+    }
+
+    const deleted = await Follow.findOneAndDelete({
+      follower: currentUser._id,
+      following: followingId,
+    });
+
+    if (!deleted) {
+      return res.status(400).json({ message: "Not following this user" });
+    }
+
+    res.json({ message: "Unfollowed successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+const getFollowStatus = async (req, res) => {
+  try {
+    const currentUser = await User.findOne({ email: req.user.email });
+    const { followingId } = req.query;
+
+    if (!followingId) {
+      return res.status(400).json({ message: "followingId required" });
+    }
+
+    const followRecord = await Follow.findOne({
+      follower: currentUser._id,
+      following: followingId,
+    });
+
+    res.json({ isFollowing: !!followRecord });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { followUser, getFollowers ,getFollowing , countStats, unfollowUser,getFollowStatus};

@@ -13,13 +13,14 @@ const {
   unlikePost,
   checkIfLiked,
   getLikeCount,
-  getUserPosts
+  getUserPosts,
+  getPostById
 } = require("../controllers/post.controllers"); // adjust path if needed
 
 const { verifyToken } = require("../middleware/token.middleware");
 
 // Existing routes
-router.get("/following", verifyToken, followUser);
+router.post("/following", verifyToken, followUser);
 router.get("/getallfollower", verifyToken, getFollowers);
 router.get("/getallfollowering", verifyToken, getFollowing);
 router.get("/getallfolloweringcount", verifyToken, countStats);
@@ -31,6 +32,7 @@ router.get("/:postId/likes/count", getLikeCount);
 
 router.get("/user-posts/:userId", verifyToken, getUserPosts);
 
+router.get("/:postId",verifyToken,getPostById);
 
 
 module.exports = router;
