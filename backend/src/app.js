@@ -16,9 +16,11 @@ app.use(cors({
 const authRoute=require("./routes/auth.routes")
 const postRoute=require("./routes/follow.routes")
 const finduser=require("./routes/finduser.routes")
+const commentRoute=require("./routes/comment.routes")
 app.use("/api/auth", authRoute)
 app.use("/api/post", postRoute)
 app.use("/api/find", finduser)
+app.use("/api/comment", commentRoute)
 // fine
 
 module.exports = app

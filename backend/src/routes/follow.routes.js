@@ -14,7 +14,8 @@ const {
   checkIfLiked,
   getLikeCount,
   getUserPosts,
-  getPostById
+  getPostById,
+   getLikedPosts
 } = require("../controllers/post.controllers"); // adjust path if needed
 
 const { verifyToken } = require("../middleware/token.middleware");
@@ -29,6 +30,7 @@ router.post("/:postId/like", verifyToken, likePost);
 router.delete("/:postId/like", verifyToken, unlikePost);
 router.get("/:postId/like/status", verifyToken, checkIfLiked);
 router.get("/:postId/likes/count", getLikeCount); 
+router.get("/liked-posts", verifyToken, getLikedPosts);
 
 router.get("/user-posts/:userId", verifyToken, getUserPosts);
 

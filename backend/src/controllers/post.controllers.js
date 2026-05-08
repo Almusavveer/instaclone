@@ -102,25 +102,32 @@ async function Getpostsofaspecificuser(req, res) {
 const likePost = async (req, res) => {
   try {
     const { postId } = req.params;
+     const user = await User.findOne({ email: req.user.email });
+    const userId = user._id;
+  
 
-    // ✅ Get userId safely from token
-    const userId = req.user._id || req.user.id;
     console.log("Token user ID:", userId);
 
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
     }
-
-    console.log("User ID:", userId);
 
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
-      { $addToSet: { likes: userId } }, // prevents duplicate likes
+      {
+        $addToSet: {
+          likes: userId,
+        },
+      },
       { new: true }
     );
 
     if (!updatedPost) {
-      return res.status(404).json({ message: "Post not found" });
+      return res.status(404).json({
+        message: "Post not found",
+      });
     }
 
     res.status(200).json({
@@ -128,9 +135,13 @@ const likePost = async (req, res) => {
       likesCount: updatedPost.likes.length,
       message: "Post liked",
     });
+
   } catch (error) {
-    console.error("Like error:", error);
-    res.status(500).json({ message: error.message });
+    console.log("Like error:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
@@ -138,16 +149,21 @@ const likePost = async (req, res) => {
 const unlikePost = async (req, res) => {
   try {
     const { postId } = req.params;
-    const userId = req.user.id;
+     const user = await User.findOne({ email: req.user.email });
+    const userId = user._id;
 
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
-      { $pull: { likes: userId } },
-      { new: true },
+      {
+        $pull: { likes: userId },
+      },
+      { new: true }
     );
 
     if (!updatedPost) {
-      return res.status(404).json({ message: "Post not found" });
+      return res.status(404).json({
+        message: "Post not found",
+      });
     }
 
     res.status(200).json({
@@ -155,42 +171,105 @@ const unlikePost = async (req, res) => {
       likesCount: updatedPost.likes.length,
       message: "Post unliked",
     });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
-// Check if current user has liked the post
+// Check if current user liked the post
+// Check if current user liked the post
 const checkIfLiked = async (req, res) => {
   try {
     const { postId } = req.params;
-    const userId = req.user.id;
+
+    // ✅ convert to string
+    const user = await User.findOne({ email: req.user.email });
+    const userId = user._id.toString();
 
     const post = await Post.findById(postId).select("likes");
+
     if (!post) {
-      return res.status(404).json({ message: "Post not found" });
+      return res.status(404).json({
+        message: "Post not found",
+      });
     }
 
-    const liked = post.likes.includes(userId);
-    res.status(200).json({ liked, likesCount: post.likes.length });
+    // ✅ Proper ObjectId comparison
+    const liked = post.likes.some(
+      (likeId) => likeId.toString() === userId
+    );
+
+    console.log("Post Likes:", post.likes);
+    console.log("User ID:", userId);
+    console.log("Liked:", liked);
+
+    res.status(200).json({
+      liked,
+      likesCount: post.likes.length,
+    });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.log(error);
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
-// Get like count only
+// Get total likes count
 const getLikeCount = async (req, res) => {
   try {
     const { postId } = req.params;
+
     const post = await Post.findById(postId).select("likes");
+
     if (!post) {
-      return res.status(404).json({ message: "Post not found" });
+      return res.status(404).json({
+        message: "Post not found",
+      });
     }
-    res.status(200).json({ likesCount: post.likes.length });
+
+    res.status(200).json({
+      likesCount: post.likes.length,
+    });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
+
+const getLikedPosts = async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.user.email });
+    const userId = user._id;
+    // Find posts where likes array contains userId
+    const likedPosts = await Post.find({
+      likes: userId,
+    })
+      .populate("author", "name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: likedPosts.length,
+      posts: likedPosts,
+    });
+
+  } catch (error) {
+    console.log("Liked posts error:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 const getUserPosts = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -278,5 +357,6 @@ module.exports = {
   checkIfLiked,
   getLikeCount,
   getPostById,
-  anotheruserprofile
+  anotheruserprofile,
+  getLikedPosts 
 };

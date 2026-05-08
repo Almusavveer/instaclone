@@ -10,6 +10,8 @@ const FeedPage = () => {
 
   const API_BASE = "http://localhost:3000";
 
+  
+
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -17,7 +19,7 @@ const FeedPage = () => {
           withCredentials: true, // if auth required
         });
         setPosts(res.data.posts || res.data);
-        console.log(res.data.posts)
+
       } catch (err) {
         console.error("Error fetching feed:", err);
         setError("Failed to load posts. Please try again later.");
