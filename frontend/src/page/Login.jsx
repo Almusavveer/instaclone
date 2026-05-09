@@ -3,8 +3,10 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { loginUser } from "../api/api";
+import { useAuth } from "../context/auth_context";
 
 export default function Login() {
+  const {setCurrentUser} =useAuth()
   const [form, setForm] = useState({ email: "hello.alex@gmail.com", password: "411" });
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
