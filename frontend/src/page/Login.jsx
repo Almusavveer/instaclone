@@ -22,7 +22,10 @@ export default function Login() {
       // navigate("/");
       const data=await loginUser(form);
 
-      console.log(data)
+      //eddited by farhan - save logged in user globally
+      setCurrentUser(data.user);
+
+      console.log(data.user)
       
       navigate("/")
 

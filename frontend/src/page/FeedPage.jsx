@@ -8,9 +8,11 @@ const FeedPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [currentUserId, setCurrentUserId] = useState(""); //eddited by farhan
+
   const API_BASE = "http://localhost:3000";
 
-  
+
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -56,9 +58,16 @@ const FeedPage = () => {
     <div className="max-w-2xl mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Feed</h1>
       <div className="mb-2.5">
-    <SearchBar placeholder="Search users..." />
+        {/* <SearchBar placeholder="Search users..." /> */}
+
+        <SearchBar                  //edited by farhan
+          placeholder="Search users..."
+          currentUserId={currentUserId}
+          setCurrentUserId={setCurrentUserId} 
+          />
+          
       </div>
-      
+
       {posts.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center text-gray-500 shadow-sm">
           <p>No posts yet. Be the first to create one!</p>
@@ -66,13 +75,13 @@ const FeedPage = () => {
       ) : (
         // posts.reverse().map((post) => <PostCard key={post._id || post.id} post={post} />)
         [...posts]
-  .reverse()
-  .map((post) => (
-    <PostCard
-      key={post._id || post.id}
-      post={post}
-    />
-  ))
+          .reverse()
+          .map((post) => (
+            <PostCard
+              key={post._id || post.id}
+              post={post}
+            />
+          ))
       )}
     </div>
   );

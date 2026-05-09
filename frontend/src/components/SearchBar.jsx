@@ -3,13 +3,16 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const SearchBar = ({ placeholder = "Search users...", currentUserId }) => {
+import { useAuth } from "../context/auth_context";  //eddited by farhan
+
+const SearchBar = ({ placeholder = "Search users...", currentUserId, setCurrentUserId, }) => {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef(null);
   const navigate = useNavigate();
+  const { currentUser } = useAuth(); //eddited by farhan
 
   const API_BASE = "http://localhost:3000";
 
@@ -31,7 +34,11 @@ const SearchBar = ({ placeholder = "Search users...", currentUserId }) => {
         params: { q: query },
         withCredentials: true,
       });
+
       setUsers(res.data.users);
+
+
+      console.log(res.data.users)
     } catch (err) {
       console.error("Search error:", err);
       setUsers([]);
@@ -40,14 +47,36 @@ const SearchBar = ({ placeholder = "Search users...", currentUserId }) => {
     }
   };
 
-  const handleUserClick = (userId) => {
+  // const handleUserClick = (userId) => {
+  //   setShowDropdown(false);
+  //   setQuery("");
+  //   // If the clicked user is the current logged-in user, go to home page
+  //   //edited by farhan - save searched clicked user id
+  //   setCurrentUserId(userId);
+  //   console.log("saved currentUserId",userId)
+  //   console.log(currentUserId)
+  //   if (currentUserId && userId === currentUserId) {
+
+  //     navigate("/");
+  //   } else {
+  //     navigate("/profile", { state: { userId } });
+  //   }
+  // };
+
+  const handleUserClick = (userId) => {  //edited by farhan
     setShowDropdown(false);
     setQuery("");
-    // If the clicked user is the current logged-in user, go to home page
-    if (currentUserId && userId === currentUserId) {
+
+    // save searched clicked user
+    setCurrentUserId(userId);
+
+    // clicked own profile
+    if (userId === currentUser?._id) {
       navigate("/");
     } else {
-      navigate("/profile", { state: { userId } });
+      navigate("/profile", {
+        state: { userId },
+      });
     }
   };
 
