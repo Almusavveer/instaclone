@@ -202,9 +202,9 @@ const checkIfLiked = async (req, res) => {
       (likeId) => likeId.toString() === userId
     );
 
-    console.log("Post Likes:", post.likes);
-    console.log("User ID:", userId);
-    console.log("Liked:", liked);
+    // console.log("Post Likes:", post.likes);
+    // console.log("User ID:", userId);
+    // console.log("Liked:", liked);
 
     res.status(200).json({
       liked,

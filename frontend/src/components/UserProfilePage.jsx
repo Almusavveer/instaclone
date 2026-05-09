@@ -1,16 +1,19 @@
 // UserProfilePage.jsx (updated)
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ProfileCard from "../components/ProfileCard";
 import FeedPage from "../page/FeedPage";
+import { useLocation } from "react-router-dom";
 
 const UserProfilePage = () => {
-  const { userId } = useParams();
+  const location = useLocation();
+  const userId = location.state?.userId;
   const [user, setUser] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const navigate = useNavigate();
@@ -35,14 +38,18 @@ const UserProfilePage = () => {
   // Fetch profile user and follow status
   useEffect(() => {
     const fetchUser = async () => {
+      if (!userId) return;
       try {
         const res = await axios.get(`${API_BASE}/api/find/${userId}`, {
           withCredentials: true,
         });
         setUser(res.data);
+        // Use the profile user's own followers/following counts
         setFollowersCount(res.data.followers?.length || 0);
+        setFollowingCount(res.data.following?.length || 0);
+
         // Check follow status if currentUser exists
-        if (currentUser?._id) {
+        if (currentUser?.email) {
           const followStatusRes = await axios.get(`${API_BASE}/api/find/follow/status`, {
             params: { followingId: userId },
             withCredentials: true,
@@ -56,6 +63,7 @@ const UserProfilePage = () => {
         setLoading(false);
       }
     };
+
     if (userId) fetchUser();
   }, [userId, navigate, currentUser]);
 
@@ -64,20 +72,20 @@ const UserProfilePage = () => {
     setActionLoading(true);
     try {
       if (isFollowing) {
-        // Unfollow
         await axios.delete(`${API_BASE}/api/find/follow`, {
           data: { followingId: userId },
           withCredentials: true,
         });
         setIsFollowing(false);
-        setFollowersCount(prev => prev - 1);
+        setFollowersCount((prev) => prev - 1);
       } else {
-        // Follow
-        await axios.post(`${API_BASE}/api/post/following`, {
-          followingId: userId,
-        }, { withCredentials: true });
+        await axios.post(
+          `${API_BASE}/api/post/following`,
+          { followingId: userId },
+          { withCredentials: true }
+        );
         setIsFollowing(true);
-        setFollowersCount(prev => prev + 1);
+        setFollowersCount((prev) => prev + 1);
       }
     } catch (err) {
       console.error("Follow/unfollow error:", err);
@@ -90,7 +98,6 @@ const UserProfilePage = () => {
   if (loading) return <div className="text-center p-8">Loading...</div>;
   if (!user) return null;
 
-  // Don't show follow button if viewing own profile
   const isOwnProfile = currentUser?._id === userId;
 
   return (
@@ -99,7 +106,14 @@ const UserProfilePage = () => {
         <div className="flex flex-col lg:flex-row gap-6">
           <aside className="lg:w-1/3 xl:w-1/4">
             <div className="sticky top-6">
-              <ProfileCard user={{ ...user, followersCount }} />
+              {/* Pass both followers and following counts from the profile user */}
+              <ProfileCard
+                user={{
+                  ...user,
+                  followersCount,
+                  followingCount,
+                }}
+              />
               {!isOwnProfile && (
                 <div className="mt-4">
                   <button

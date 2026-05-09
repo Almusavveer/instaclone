@@ -7,6 +7,8 @@ import Profile from "./page/Profile";
 import SinglePostPage from "./components/SinglePostPage";
 import UserProfilePage from "./components/UserProfilePage";
 import CreatePostPage from "./page/CreatePostPage";
+
+import FollowPage from "./page/FollowPage";
 // ✅ Protected Route Middleware – validates token before rendering page
 function ProtectedRoute({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading
@@ -64,13 +66,23 @@ export default function App() {
         }
       />
       <Route
-        path="/profile/:userId"
+        path="/profile"
         element={
           <ProtectedRoute>
             <UserProfilePage />
           </ProtectedRoute>
         }
+      
       />
+
+      <Route
+  path="/follow"
+  element={
+    <ProtectedRoute>
+      <FollowPage />
+    </ProtectedRoute>
+  }
+/>
       {/* Redirect any unknown path to login or profile */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

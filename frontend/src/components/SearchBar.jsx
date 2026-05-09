@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const SearchBar = ({ placeholder = "Search users..." }) => {
+const SearchBar = ({ placeholder = "Search users...", currentUserId }) => {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,7 +29,7 @@ const SearchBar = ({ placeholder = "Search users..." }) => {
     try {
       const res = await axios.get(`${API_BASE}/api/find/search`, {
         params: { q: query },
-        withCredentials: true, // sends cookie for verifyToken
+        withCredentials: true,
       });
       setUsers(res.data.users);
     } catch (err) {
@@ -43,7 +43,12 @@ const SearchBar = ({ placeholder = "Search users..." }) => {
   const handleUserClick = (userId) => {
     setShowDropdown(false);
     setQuery("");
-    navigate(`/profile/${userId}`); // uses anotheruserprofile route
+    // If the clicked user is the current logged-in user, go to home page
+    if (currentUserId && userId === currentUserId) {
+      navigate("/");
+    } else {
+      navigate("/profile", { state: { userId } });
+    }
   };
 
   useEffect(() => {
@@ -57,7 +62,7 @@ const SearchBar = ({ placeholder = "Search users..." }) => {
   }, []);
 
   return (
-    <div className="relative w-full max-w-md" ref={searchRef}>
+    <div className="relative w-full" ref={searchRef}>
       <div className="relative">
         <input
           type="text"

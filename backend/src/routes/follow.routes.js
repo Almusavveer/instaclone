@@ -5,6 +5,7 @@ const {
   getFollowers,
   getFollowing,
   countStats,
+    getFollowersAndFollowing
   
            // ← new controller for stats
 } = require("../controllers/follow.controlles");  // adjust path if needed
@@ -36,5 +37,10 @@ router.get("/user-posts/:userId", verifyToken, getUserPosts);
 
 router.get("/:postId",verifyToken,getPostById);
 
+
+router.get(
+  "/follow/details",verifyToken,
+  getFollowersAndFollowing
+);
 
 module.exports = router;

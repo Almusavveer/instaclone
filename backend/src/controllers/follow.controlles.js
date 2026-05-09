@@ -68,23 +68,25 @@ const getFollowers = async (req, res) => {
   );
 
   res.status(200).json({
-    count:followers.length,
-    followers});
+    count: followers.length,
+    followers,
+  });
 };
 
 const getFollowing = async (req, res) => {
-//   const userId = req.user._id; // logged-in user
+  //   const userId = req.user._id; // logged-in user
   const find = await User.findOne({ email: req.user.email });
   const userId = find._id;
   try {
-    const following = await Follow.find({ follower: userId })
-      .populate("following", "name email"); // get user details
+    const following = await Follow.find({ follower: userId }).populate(
+      "following",
+      "name email",
+    ); // get user details
 
     res.status(200).json({
       count: following.length,
-      following
+      following,
     });
-
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -96,16 +98,16 @@ const countStats = async (req, res) => {
 
   try {
     const followers = await Follow.countDocuments({
-      following: userId
+      following: userId,
     });
 
     const following = await Follow.countDocuments({
-      follower: userId
+      follower: userId,
     });
 
     res.json({
       followers,
-      following
+      following,
     });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
@@ -143,6 +145,7 @@ const getFollowStatus = async (req, res) => {
     if (!followingId) {
       return res.status(400).json({ message: "followingId required" });
     }
+    
 
     const followRecord = await Follow.findOne({
       follower: currentUser._id,
@@ -155,4 +158,85 @@ const getFollowStatus = async (req, res) => {
   }
 };
 
-module.exports = { followUser, getFollowers ,getFollowing , countStats, unfollowUser,getFollowStatus};
+
+async function getFollowersAndFollowing(req, res) {
+  try {
+
+    // ✅ Get email from query
+    const { email } = req.query;
+
+    // ✅ Find user
+    const user = await User.findOne({ email });
+
+    console.log("User for Follow Data:", user);
+
+    // ❌ User not found
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userId = user._id;
+
+    // 👥 Followers
+    const followers = await Follow.find({
+      following: userId,
+    }).populate(
+      "follower",
+      "name  email"
+    );
+
+    // ➡️ Following
+    const following = await Follow.find({
+      follower: userId,
+    }).populate(
+      "following",
+      "name  email"
+    );
+
+    // 📊 Counts
+    const followersCount = followers.length;
+    const followingCount = following.length;
+
+    res.status(200).json({
+      success: true,
+
+      counts: {
+        followers: followersCount,
+        following: followingCount,
+      },
+
+      followers: followers.map(
+        (f) => f.follower
+      ),
+
+      following: following.map(
+        (f) => f.following
+      ),
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Followers/Following Error:",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+}
+
+module.exports = {
+  followUser,
+  getFollowers,
+  getFollowing,
+  countStats,
+  unfollowUser,
+  getFollowStatus,
+  getFollowersAndFollowing
+};

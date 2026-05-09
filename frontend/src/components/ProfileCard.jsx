@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const ProfileCard = ({ user }) => {
+
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
-  const [followingCount] = useState(0); // static example
+  const [followingCount, setFollowingCount] = useState(0); // static example
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const userId = user.email; 
+ 
+  // assuming user object has _id field
 
-  const API_BASE ="http://localhost:3000";
+  const API_BASE = "http://localhost:3000";
 
   // Fetch initial follow status & counts
   useEffect(() => {
@@ -18,6 +24,7 @@ const ProfileCard = ({ user }) => {
         });
         setIsFollowing(res.data.following);
         setFollowersCount(res.data.followers);
+        setFollowingCount(res.data.following); // adjust based on your backend response
       } catch (err) {
         console.error("Error fetching follow data:", err);
       }
@@ -25,6 +32,14 @@ const ProfileCard = ({ user }) => {
     fetchFollowData();
   }, [API_BASE]);
 
+
+  const handleOpenFollowPage = () => {
+    navigate("/follow", {
+      state: {
+        userId: userId,
+      },
+    });
+  };
   // // Toggle follow/unfollow
   // const handleFollowToggle = async () => {
   //   setLoading(true);
@@ -73,7 +88,7 @@ const ProfileCard = ({ user }) => {
         </div>
 
         {/* Stats */}
-        <div className="mt-5 flex justify-between items-center bg-gray-50/80 rounded-xl p-3">
+        <div   onClick={handleOpenFollowPage} className="mt-5 flex justify-between items-center bg-gray-50/80 rounded-xl p-3">
           <div className="text-center flex-1">
             <p className="text-lg font-bold text-gray-800">
               {followersCount.toLocaleString()}

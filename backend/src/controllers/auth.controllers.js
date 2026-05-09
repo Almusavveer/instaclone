@@ -14,7 +14,6 @@ async function register(req, res) {
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
-
     // 🔍 Check if the user already exists in database
     const isUserExist = await User.findOne({ email });
 
@@ -85,6 +84,7 @@ async function register(req, res) {
 async function login(req, res) {
   // ✅ Extract credentials
   const { email, password } = req.body;
+  console.log("Login Attempt:", email);
   if (!email || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }

@@ -102,12 +102,8 @@ const fetchComments = async () => {
       }
     );
 
-    setComments(res.data.comments.length);
 
-    console.log(
-      "Comments count:",
-      res.data.comments.length
-    );
+
 
   } catch (error) {
     console.log(
@@ -180,7 +176,7 @@ useEffect(() => {
       </div>
 
       {/* ❤️ Likes & 💬 Comments */}
-      <div className="mt-4 flex items-center space-x-6 text-gray-500">
+      <div  className="mt-4 flex items-center space-x-6 text-gray-500">
 
         {/* ❤️ Like Button */}
         <button
@@ -209,8 +205,8 @@ useEffect(() => {
         </button>
 
         {/* 💬 Comments */}
-        <button
-          onClick={(e) => e.stopPropagation()}
+        <button 
+          onClick={handleClick}
           className="flex items-center space-x-1 hover:text-blue-500 transition"
         >
           <svg

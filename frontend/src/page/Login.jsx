@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { loginUser } from "../api/api";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "hello.alex@gmail.com", password: "411" });
@@ -15,8 +16,14 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await axios.post("http://localhost:3000/api/auth/login", form, { withCredentials: true });
-      navigate("/");
+      // await axios.post("http://localhost:3000/api/auth/login", form, { withCredentials: true });
+      // navigate("/");
+      const data=await loginUser(form);
+
+      console.log(data)
+      
+      navigate("/")
+
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");
     } finally {
