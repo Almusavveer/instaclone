@@ -85,7 +85,7 @@ async function login(req, res) {
   // ✅ Extract credentials
   const { email, password } = req.body;
   console.log("Login Attempt:", email);
-  if (!email || !password) {
+  if (!email || !password) {  ``
     return res.status(400).json({ message: "All fields are required" });
   }
 

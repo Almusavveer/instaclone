@@ -231,6 +231,7 @@ async function getFollowersAndFollowing(req, res) {
   }
 }
 
+
 module.exports = {
   followUser,
   getFollowers,

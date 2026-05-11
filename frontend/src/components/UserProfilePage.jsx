@@ -28,6 +28,7 @@ const UserProfilePage = () => {
           withCredentials: true,
         });
         setCurrentUser(res.data);
+        console.log("Current user data:", res.data);
       } catch (err) {
         console.error("Failed to fetch current user:", err);
       }
@@ -44,6 +45,8 @@ const UserProfilePage = () => {
           withCredentials: true,
         });
         setUser(res.data);
+        
+        console.log("Profile user data:", res.data);
         // Use the profile user's own followers/following counts
         setFollowersCount(res.data.followers?.length || 0);
         setFollowingCount(res.data.following?.length || 0);

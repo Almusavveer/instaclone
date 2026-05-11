@@ -1,23 +1,27 @@
 // src/pages/FeedPage.jsx
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import PostCard from "../components/PostCard";
 import SearchBar from "../components/SearchBar";
+import { useAuth } from "../context/auth_context";
+
 const FeedPage = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const API_BASE = "http://localhost:3000";
+  const { currentUser } = useAuth();
 
-  
+  const API_BASE = "http://localhost:3000";
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         const res = await axios.get(`${API_BASE}/api/auth/posts`, {
-          withCredentials: true, // if auth required
+          withCredentials: true,
         });
+
         setPosts(res.data.posts || res.data);
 
       } catch (err) {
@@ -27,8 +31,11 @@ const FeedPage = () => {
         setLoading(false);
       }
     };
+
     fetchPosts();
-  }, [API_BASE]);
+  }, []);
+
+  console.log("Current User:", currentUser);
 
   if (loading) {
     return (
@@ -42,6 +49,7 @@ const FeedPage = () => {
     return (
       <div className="text-center text-red-500 p-5">
         <p>{error}</p>
+
         <button
           onClick={() => window.location.reload()}
           className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg"
@@ -54,25 +62,30 @@ const FeedPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Feed</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">
+        Feed
+      </h1>
+
       <div className="mb-2.5">
-    <SearchBar placeholder="Search users..." />
+        <SearchBar
+          placeholder="Search users..."
+          currentUserId={currentUser?._id}
+        />
       </div>
-      
+
       {posts.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center text-gray-500 shadow-sm">
           <p>No posts yet. Be the first to create one!</p>
         </div>
       ) : (
-        // posts.reverse().map((post) => <PostCard key={post._id || post.id} post={post} />)
         [...posts]
-  .reverse()
-  .map((post) => (
-    <PostCard
-      key={post._id || post.id}
-      post={post}
-    />
-  ))
+          .reverse()
+          .map((post) => (
+            <PostCard
+              key={post._id || post.id}
+              post={post}
+            />
+          ))
       )}
     </div>
   );
