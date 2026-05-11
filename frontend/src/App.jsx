@@ -7,6 +7,7 @@ import Profile from "./page/Profile";
 import SinglePostPage from "./components/SinglePostPage";
 import UserProfilePage from "./components/UserProfilePage";
 import CreatePostPage from "./page/CreatePostPage";
+import EditProfile from "./page/EditProfile";
 
 import FollowPage from "./page/FollowPage";
 // ✅ Protected Route Middleware – validates token before rendering page
@@ -72,17 +73,23 @@ export default function App() {
             <UserProfilePage />
           </ProtectedRoute>
         }
-      
+
       />
 
       <Route
-  path="/follow"
-  element={
-    <ProtectedRoute>
-      <FollowPage />
-    </ProtectedRoute>
-  }
-/>
+        path="/follow"
+        element={
+          <ProtectedRoute>
+            <FollowPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/edit-profile"
+        element={<ProtectedRoute><EditProfile /></ProtectedRoute>}
+      />
+
+
       {/* Redirect any unknown path to login or profile */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

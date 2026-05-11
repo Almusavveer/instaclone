@@ -4,13 +4,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import ProfileCard from "../components/ProfileCard";
 import FeedPage from "../page/FeedPage";
-
+import { useAuth } from "../context/auth_context";
 const UserProfilePage = () => {
   const location = useLocation();
   const userId = location.state?.userId;
 
   const [user, setUser] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
+    const { currentUser}= useAuth(); // Get current user from context
 
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -76,7 +76,9 @@ const UserProfilePage = () => {
         await fetchFollowData(userId);
 
         // check follow status
-        if (currentUser?._id) {
+        console.log("Current User ID:", currentUser);
+        console.log("Profile User ID:", userId);
+        if (currentUser) {
           const followStatusRes = await axios.get(
             `${API_BASE}/api/find/follow/status`,
             {
@@ -158,8 +160,8 @@ const UserProfilePage = () => {
               <ProfileCard
                 user={{
                   ...user,
-                  followersCount,
-                  followingCount,
+                 ...followersCount,
+                  ...followingCount,
                 }}
               />
 

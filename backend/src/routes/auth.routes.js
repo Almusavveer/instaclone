@@ -8,6 +8,8 @@ const {
   getUser,
   rotaterefreshToken,
   logoutAll,
+  updateProfile,
+  getCurrentUser,
 } = require("../controllers/auth.controllers");
 const upload = require("../middleware/multer");
 // 📝 Comment: login import can be used from destructuring above
@@ -43,4 +45,17 @@ router.get("/verify", verifyTokenfrontend, (req, res) => {
   // Because verifyTokenfrontend called next(), we reach here
   res.status(200).json({ valid: true, user: req.user });
 });
+
+router.put(
+  "/update-profile",
+  verifyToken,
+  upload.single("avatar"),
+  updateProfile
+);
+
+router.get(
+  "/me",
+  verifyToken,
+  getCurrentUser
+);
 module.exports = router;

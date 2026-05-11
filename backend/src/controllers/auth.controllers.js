@@ -232,8 +232,8 @@ async function login(req, res) {
     return res.status(401).json({ message: "wrong password" });
   }
 
-  // let refreshToken = req.cookies.refreshToken;
-  //   res.clearCookie("refreshToken");
+// const refreshToken = req.cookies.refreshToken;
+//     res.clearCookie("refreshToken");
 
   // 🔄 Create longer-lived refresh token (7 days)
  const refreshToken = jwt.sign(
@@ -271,117 +271,78 @@ let session;
 
 if (existingSession) {
   // ✅ SAME DEVICE → update
-  existingSession.count += 1;
-  existingSession.expiresAt = new Date(Date.now() + 7*24*60*60*1000);
-
-  await existingSession.save();
-  session = existingSession;
-} else {
-  // ❌ NEW DEVICE → create new session
-
-  // refreshToken = jwt.sign(
-  //   { email: userExists.email },
-  //   process.env.JWT_SECRET,
-  //   { expiresIn: "7d" }
-  // );
-
+ 
   const hashedToken = crypto
     .createHash("sha256")
     .update(refreshToken)
     .digest("hex");
 
-  session = await Session.create({
-    user: userExists._id,
-    refreshToken: hashedToken,
-    ip,
-    userAgent,
-    deviceName,
-    deviceType,
-    os,
-    expiresAt: new Date(Date.now() + 7*24*60*60*1000),
-  });
+  existingSession.refreshToken =
+    hashedToken;
 
-  // 🍪 set cookie ONLY for new session
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  existingSession.count += 1;
+
+  existingSession.expiresAt =
+    new Date(
+      Date.now() +
+      7 * 24 * 60 * 60 * 1000
+    );
+
+  await existingSession.save();
+
+  session = existingSession;
+} else {
+  // 🔄 NEW DEVICE → create new session
+
+   const hashedToken = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+
+  session =
+    await Session.create({
+      user: userExists._id,
+      refreshToken:
+        hashedToken,
+      ip,
+      userAgent,
+      deviceName,
+      deviceType,
+      os,
+      expiresAt:
+        new Date(
+          Date.now() +
+          7 *
+            24 *
+            60 *
+            60 *
+            1000
+        ),
+    });
 }
 
-  // const userAgent = req.get("User-Agent");
-  // const ip = req.ip;
+// ✅ ALWAYS SET COOKIE
+res.cookie(
+  "refreshToken",
+  refreshToken,
+  {
+    httpOnly: true,
+    secure:
+      process.env
+        .NODE_ENV ===
+      "production",
 
-  // // 🔍 Check if session already exists for same device
-  // let existingSession = await Session.findOne({
-  //   user: userExists._id,
-  //   userAgent: userAgent,
-  //   ip: ip,
-  // });
+    sameSite: "strict",
 
-  // let session;
+    maxAge:
+      7 *
+      24 *
+      60 *
+      60 *
+      1000,
+  });
 
-  // if (existingSession) {
-  //   // ✅ SAME DEVICE → reuse session
-  //   existingSession.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  //   existingSession.count+=1
-  //   await existingSession.save();
 
-  //   session = existingSession;
-  // } else {
-  //   // ❌ NEW DEVICE → create new session
-
-  //   const hashedToken = crypto
-  //     .createHash("sha256")
-  //     .update(refreshToken)
-  //     .digest("hex");
-
-  //   session = await Session.create({
-  //     user: userExists._id,
-  //     refreshToken: hashedToken,
-  //     ip,
-  //     userAgent,
-  //     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-  //   });
-  //   // const hashedToken = crypto
-  //   //   .createHash("sha256")
-  //   //   .update(refreshToken)
-  //   //   .digest("hex");
-  //   // const session = await Session.create({
-  //   //   user: userExists._id,
-  //   //   refreshToken: hashedToken,
-  //   //   ip: req.ip,
-  //   //   userAgent: req.get("User-Agent"),
-  //   //   expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-  //   // });
-
-  //   res.cookie("refreshToken", refreshToken, {
-  //     httpOnly: true,
-  //     secure: process.env.NODE_ENV === "production",
-  //     sameSite: "strict",
-  //     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  //   });
-
-  //   // ⚡ Create short-lived access token (15 minutes)
-  //   const accessToken = jwt.sign(
-  //     {
-  //       email: userExists.email,
-  //       sessionId: session._id, // Include session ID in access token
-  //     },
-  //     process.env.JWT_SECRET,
-  //     {
-  //       expiresIn: "15m",
-  //     },
-  //   );
-
-  //   return res.status(200).json({
-  //     message: "Login successful",
-  //     user: userExists,
-  //     refreshToken: refreshToken,
-  //     accessToken: accessToken,
-  //   });
-  // }
   const accessToken = jwt.sign(
       {
         email: userExists.email,
@@ -392,12 +353,7 @@ if (existingSession) {
         expiresIn: "15m",
       },
     );
-res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+
   
    return res.status(200).json({
       message: "Login successful",
@@ -427,6 +383,7 @@ async function logout(req, res) {
     refreshToken: hashedToken,
     revoked: false,
   });
+    console.log("Session revoked: wok", session);
   if (!session) {
     return res.status(400).json({ message: "Invalid refresh token" });
   }
@@ -435,8 +392,12 @@ async function logout(req, res) {
   session.revoked = true;
 
   await session.save();
-
-  res.clearCookie("refreshToken");
+ // Debugging log
+  res.clearCookie("refreshToken", {
+  httpOnly: true,
+  secure: false,
+  sameSite: "lax",
+});
   return res.status(200).json({ message: "Logout successful" });
 }
 
@@ -570,11 +531,128 @@ async function logoutAll(req, res) {
     .json({ message: "Logged out from all devices successfully" });
 }
 
+async function getCurrentUser(
+  req,
+  res
+) {
+  try {
+    const user =
+      await User.findOne({
+        email:
+          req.user.email,
+      }).select(
+        "name username bio email avatar"
+      );
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({
+          message:
+            "User not found",
+        });
+    }
+
+    res.status(200).json({
+      user,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message:
+        "Internal Server Error",
+    });
+  }
+}
+
+
+// ✅ Update Profile
+async function updateProfile(
+  req,
+  res
+) {
+  try {
+    const user =
+      await User.findOne({
+        email:
+          req.user.email,
+      });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({
+          message:
+            "User not found",
+        });
+    }
+
+    const {
+      name,
+      username,
+      bio,
+      email,
+    } = req.body;
+
+    // ✅ Update fields
+    user.name =
+      name || user.name;
+
+    user.username =
+      username ||
+      user.username;
+
+    user.bio =
+      bio || user.bio;
+
+    user.email =
+      email || user.email;
+
+    // 🖼️ Upload avatar
+    if (req.file) {
+      const uploadedImage =
+        await imagekit.upload({
+          file: req.file.buffer,
+
+          fileName: `${Date.now()}-${
+            req.file
+              .originalname
+          }`,
+
+          folder: "/avatars",
+        });
+
+      user.avatar =
+        uploadedImage.url;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message:
+        "Profile updated successfully",
+
+      user,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message:
+        "Internal Server Error",
+    });
+  }
+}
+
+
 module.exports = {
   register,
   login,
   logout,
+  getCurrentUser,
   getUser,
   rotaterefreshToken,
   logoutAll,
+  updateProfile,
 };

@@ -7,7 +7,6 @@ import axios from "axios";
 
 const PostCard = ({ post }) => {
   const navigate = useNavigate();
-
   // ❤️ States
   const [liked, setLiked] = useState(false);
   const [comments, setComments] = useState(0);
