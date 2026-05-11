@@ -17,6 +17,7 @@ export default function Register() {
       alert("Password must be at least 8 characters.");
       return;
     }
+
     setIsLoading(true);
     try {
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
@@ -43,6 +44,7 @@ export default function Register() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+
         .animate-fade-up { animation: fadeInUp 0.5s ease-out forwards; }
       `}</style>
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">

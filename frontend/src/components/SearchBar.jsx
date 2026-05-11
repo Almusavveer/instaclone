@@ -16,7 +16,7 @@ const SearchBar = ({
 
   const searchRef = useRef(null);
   const navigate = useNavigate();
-  const { currentUser } = useAuth(); //eddited by farhan
+  const  {currentUser } = useAuth(); //eddited by farhan
 
   const API_BASE = "http://localhost:3000";
 

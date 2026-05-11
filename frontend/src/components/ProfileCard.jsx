@@ -13,7 +13,7 @@ const ProfileCard = ({ user }) => {
   const userId = user.email;
 
   const API_BASE = "http://localhost:3000";
-  console.log("pro;;",user)
+  // console.log("pro;;",user)
   // 📦 Fetch follow data
   useEffect(() => {
     const fetchFollowData = async () => {

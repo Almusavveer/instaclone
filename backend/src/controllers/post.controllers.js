@@ -1,33 +1,5 @@
 const User = require("../model/user");
 const Post = require("../model/post"); // assuming you have this
-const imagekit = require("../db/imagekit")
-
-// async function createpost(req, res) {
-//   try {
-//     const { title, content } = req.body;
-
-//     // 🔥 Find user using email from token
-//     const user = await User.findOne({ email: req.user.email });
-
-//     if (!user) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
-
-//     // 🔥 Create post with user ID
-//     const post = await Post.create({
-//       title,
-//       content,
-//       author: user._id,
-//     });
-
-//     res.status(201).json({
-//       message: "Post created successfully",
-//       post,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// }
 
 async function createpost(req, res) {
   try {
@@ -37,29 +9,13 @@ async function createpost(req, res) {
     const user = await User.findOne({ email: req.user.email });
 
     if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // ✅ Default empty image
-    let imageUrl = "";
-
-    // ✅ Upload image if exists
-    if (req.file) {
-      const uploadedImage = await imagekit.upload({
-        file: req.file.buffer,
-        fileName: Date.now() + "-" + req.file.originalname,
-      });
-
-      imageUrl = uploadedImage.url;
-    }
-
-    // 🔥 Create post
+    // 🔥 Create post with user ID
     const post = await Post.create({
       title,
       content,
-      imgUrl: imageUrl,
       author: user._id,
     });
 
@@ -68,11 +24,7 @@ async function createpost(req, res) {
       post,
     });
   } catch (error) {
-    console.log(error);
-
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -131,7 +83,7 @@ async function search(req, res) {
 
 async function anotheruserprofile(req, res) {
   try {
-    const user = await User.findById(req.params.userId).select("-password");
+    const user = await User.findById(req.params.userId);
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   } catch (err) {

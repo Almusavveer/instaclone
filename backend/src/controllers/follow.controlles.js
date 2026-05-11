@@ -252,9 +252,6 @@ const getFollowData = async (req, res) => {
 
       followersCount: followers.length,
       followingCount: following.length,
-
-      followers,
-      following,
     });
   } catch (error) {
     console.log("Follow Data Error:", error);

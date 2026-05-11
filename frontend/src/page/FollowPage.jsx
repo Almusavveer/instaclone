@@ -75,6 +75,7 @@ const FollowPage = () => {
             getDisplayName(user)
           )}&background=6366f1&color=fff`
         }
+
         alt="avatar"
       />
     </div>

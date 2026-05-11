@@ -34,7 +34,7 @@ const FeedPage = () => {
     fetchPosts();
   }, []);
 
-  console.log("Current User:", currentUser);
+  // console.log("Current User:", currentUser);
 
   if (loading) {
     return (
