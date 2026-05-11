@@ -28,6 +28,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+<<<<<<< HEAD
     setIsLoading(true);
 
     try {
@@ -43,6 +44,14 @@ export default function Login() {
       setCurrentUser(data.user);
 
       navigate("/");
+=======
+      //eddited by farhan - save logged in user globally
+      setCurrentUser(data.user);
+
+      console.log(data.user)
+      
+      navigate("/")
+>>>>>>> eccc804cacdfd56e83e42beee89b140ace3b06d5
 
     } catch (err) {
       console.error(err);
