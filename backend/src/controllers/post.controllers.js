@@ -1,5 +1,33 @@
 const User = require("../model/user");
 const Post = require("../model/post"); // assuming you have this
+const imagekit = require("../db/imagekit")
+
+// async function createpost(req, res) {
+//   try {
+//     const { title, content } = req.body;
+
+//     // 🔥 Find user using email from token
+//     const user = await User.findOne({ email: req.user.email });
+
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     // 🔥 Create post with user ID
+//     const post = await Post.create({
+//       title,
+//       content,
+//       author: user._id,
+//     });
+
+//     res.status(201).json({
+//       message: "Post created successfully",
+//       post,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// }
 
 async function createpost(req, res) {
   try {
@@ -9,13 +37,29 @@ async function createpost(req, res) {
     const user = await User.findOne({ email: req.user.email });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
-    // 🔥 Create post with user ID
+    // ✅ Default empty image
+    let imageUrl = "";
+
+    // ✅ Upload image if exists
+    if (req.file) {
+      const uploadedImage = await imagekit.upload({
+        file: req.file.buffer,
+        fileName: Date.now() + "-" + req.file.originalname,
+      });
+
+      imageUrl = uploadedImage.url;
+    }
+
+    // 🔥 Create post
     const post = await Post.create({
       title,
       content,
+      imgUrl: imageUrl,
       author: user._id,
     });
 
@@ -24,7 +68,11 @@ async function createpost(req, res) {
       post,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.log(error);
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 }
 
@@ -80,6 +128,7 @@ async function search(req, res) {
     res.status(500).json({ message: "Search failed" });
   }
 }
+
 async function anotheruserprofile(req, res) {
   try {
     const user = await User.findById(req.params.userId).select("-password");
@@ -89,6 +138,7 @@ async function anotheruserprofile(req, res) {
     res.status(500).json({ message: err.message });
   }
 }
+
 async function Getpostsofaspecificuser(req, res) {
   try {
     const posts = await Post.find({ author: req.params.userId })
@@ -99,13 +149,13 @@ async function Getpostsofaspecificuser(req, res) {
     res.status(500).json({ message: err.message });
   }
 }
+
 const likePost = async (req, res) => {
   try {
     const { postId } = req.params;
      const user = await User.findOne({ email: req.user.email });
     const userId = user._id;
   
-
     console.log("Token user ID:", userId);
 
     if (!userId) {
@@ -135,7 +185,6 @@ const likePost = async (req, res) => {
       likesCount: updatedPost.likes.length,
       message: "Post liked",
     });
-
   } catch (error) {
     console.log("Like error:", error);
 
@@ -171,7 +220,6 @@ const unlikePost = async (req, res) => {
       likesCount: updatedPost.likes.length,
       message: "Post unliked",
     });
-
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -210,7 +258,6 @@ const checkIfLiked = async (req, res) => {
       liked,
       likesCount: post.likes.length,
     });
-
   } catch (error) {
     console.log(error);
 
@@ -236,7 +283,6 @@ const getLikeCount = async (req, res) => {
     res.status(200).json({
       likesCount: post.likes.length,
     });
-
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -260,7 +306,6 @@ const getLikedPosts = async (req, res) => {
       total: likedPosts.length,
       posts: likedPosts,
     });
-
   } catch (error) {
     console.log("Liked posts error:", error);
 

@@ -5,28 +5,132 @@ const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const imagekit = require("../db/imagekit")
 
 // 📝 Register a new user with hashed password and JWT tokens.
+// async function register(req, res) {
+//   try {
+//     // ✅ Extract and validate user input
+//     const { name, email, password } = req.body;
+//     if (!name || !email || !password) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     // 🔍 Check if the user already exists in database
+//     const isUserExist = await User.findOne({ email });
+
+//     if (isUserExist) {
+//       return res.status(400).json({ message: "User already exists" });
+//     }
+
+//     // 🔐 Hash the password before storing it
+//     const hashedPassword = await bcrypt.hash(password, saltRounds);
+//     // 💾 Store hash in your password DB
+//     const user = await User.create({ name, email, password: hashedPassword });
+
+//     // 🔄 Create longer-lived refresh token (7 days)
+//     const refreshToken = jwt.sign(
+//       {
+//         email: user.email,
+//       },
+//       process.env.JWT_SECRET,
+//       {
+//         expiresIn: "7d",
+//       },
+//     );
+//     // 🎫 Hash the refresh token for storage
+//     const hashedToken = crypto
+//       .createHash("sha256")
+//       .update(refreshToken)
+//       .digest("hex");
+//     // 📋 Create session record in database
+//     const session = await Session.create({
+//       user: user._id,
+//       refreshToken: hashedToken,
+//       ip: req.ip,
+//       userAgent: req.get("User-Agent"),
+//       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+//     });
+//     // 🍪 Set refresh token cookie (secure)
+//     res.cookie("refreshToken", refreshToken, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === "production",
+//       sameSite: "lax",
+//       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+//     });
+
+//     // ⚡ Create short-lived access token (15 minutes)
+//     const accessToken = jwt.sign(
+//       {
+//         email: user.email,
+//         sessionId: session._id, // Include session ID in access token
+//       },
+//       process.env.JWT_SECRET,
+//       {
+//         expiresIn: "15m",
+//       },
+//     );
+//     return res.status(201).json({
+//       message: "User registered successfully",
+//       user,
+//       accessToken,
+//       refreshToken,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: "Internal Server Error" });
+//   }
+// }
 async function register(req, res) {
   try {
-    // ✅ Extract and validate user input
+    // ✅ Extract fields
     const { name, email, password } = req.body;
+
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({
+        message: "All fields are required",
+      });
     }
-    // 🔍 Check if the user already exists in database
-    const isUserExist = await User.findOne({ email });
+
+    // 🔍 Check existing user
+    const isUserExist = await User.findOne({
+      email,
+    });
 
     if (isUserExist) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({
+        message: "User already exists",
+      });
     }
 
-    // 🔐 Hash the password before storing it
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    // 💾 Store hash in your password DB
-    const user = await User.create({ name, email, password: hashedPassword });
+    // 🖼️ Avatar URL
+    let avatarUrl = "";
 
-    // 🔄 Create longer-lived refresh token (7 days)
+    // ✅ Upload avatar if exists
+    if (req.file) {
+      const uploadedImage =
+        await imagekit.upload({
+          file: req.file.buffer,
+          fileName: `${Date.now()}-${req.file.originalname}`,
+          folder: "/avatars",
+        });
+
+      avatarUrl = uploadedImage.url;
+    }
+
+    // 🔐 Hash password
+    const hashedPassword =
+      await bcrypt.hash(password, saltRounds);
+
+    // 💾 Create user
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      avatar: avatarUrl,
+    });
+
+    // 🔄 Refresh token
     const refreshToken = jwt.sign(
       {
         email: user.email,
@@ -34,55 +138,80 @@ async function register(req, res) {
       process.env.JWT_SECRET,
       {
         expiresIn: "7d",
-      },
+      }
     );
-    // 🎫 Hash the refresh token for storage
+
+    // 🔐 Hash refresh token
     const hashedToken = crypto
       .createHash("sha256")
       .update(refreshToken)
       .digest("hex");
-    // 📋 Create session record in database
+
+    // 📋 Create session
     const session = await Session.create({
       user: user._id,
       refreshToken: hashedToken,
       ip: req.ip,
       userAgent: req.get("User-Agent"),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    });
-    // 🍪 Set refresh token cookie (secure)
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      expiresAt: new Date(
+        Date.now() +
+          7 * 24 * 60 * 60 * 1000
+      ),
     });
 
-    // ⚡ Create short-lived access token (15 minutes)
+    // 🍪 Cookie
+    res.cookie(
+      "refreshToken",
+      refreshToken,
+      {
+        httpOnly: true,
+        secure:
+          process.env.NODE_ENV ===
+          "production",
+        sameSite: "lax",
+        maxAge:
+          7 * 24 * 60 * 60 * 1000,
+      }
+    );
+
+    // ⚡ Access token
     const accessToken = jwt.sign(
       {
         email: user.email,
-        sessionId: session._id, // Include session ID in access token
+        sessionId: session._id,
       },
       process.env.JWT_SECRET,
       {
         expiresIn: "15m",
-      },
+      }
     );
+
     return res.status(201).json({
-      message: "User registered successfully",
+      message:
+        "User registered successfully",
       user,
       accessToken,
       refreshToken,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Internal Server Error" });
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
   }
 }
 
 // 🔑 Authenticate existing user and issue a JWT token
 async function login(req, res) {
-  // ✅ Extract credentials
+    console.log(req.body);
+
+    // ✅ Prevent destructure crash
+    if (!req.body) {
+      return res.status(400).json({
+        message: "Request body missing",
+      });
+    }  // ✅ Extract credentials
   const { email, password } = req.body;
   console.log("Login Attempt:", email);
   if (!email || !password) {  ``
@@ -102,6 +231,7 @@ async function login(req, res) {
   if (!match) {
     return res.status(401).json({ message: "wrong password" });
   }
+
   // let refreshToken = req.cookies.refreshToken;
   //   res.clearCookie("refreshToken");
 
@@ -139,7 +269,6 @@ let existingSession = await Session.findOne({
 
 let session;
 
-
 if (existingSession) {
   // ✅ SAME DEVICE → update
   existingSession.count += 1;
@@ -147,7 +276,6 @@ if (existingSession) {
 
   await existingSession.save();
   session = existingSession;
-
 } else {
   // ❌ NEW DEVICE → create new session
 
@@ -181,6 +309,7 @@ if (existingSession) {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
+
   // const userAgent = req.get("User-Agent");
   // const ip = req.ip;
 
@@ -286,6 +415,7 @@ async function logout(req, res) {
   if (!refreshToken) {
     return res.status(400).json({ message: "No refresh token provided" });
   }
+
   // 🎫 Hash token for lookup
   const hashedToken = crypto
     .createHash("sha256")
@@ -320,7 +450,8 @@ async function getUser(req, res) {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    return res.status(200).json({ name: user.name, email: user.email });
+
+    return res.status(200).json({ name: user.name, email: user.email , avatar:user.avatar});
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -334,6 +465,7 @@ async function rotaterefreshToken(req, res) {
   if (!refreshToken) {
     return res.status(400).json({ message: "No refresh token provided" });
   }
+
   // 🎫 Hash token for lookup
   const hashedToken = crypto
     .createHash("sha256")
@@ -348,12 +480,14 @@ async function rotaterefreshToken(req, res) {
   if (!session) {
     return res.status(400).json({ message: "Invalid refresh token" });
   }
+
   // ⏰ Check if token expired
   if (session.expiresAt < new Date()) {
     session.revoked = true;
     await session.save();
     return res.status(400).json({ message: "Refresh token expired" });
   }
+
   // 🔍 Get user details
   const userExists = await User.findById(session.user);
   if (!userExists) {
@@ -415,6 +549,7 @@ async function logoutAll(req, res) {
   if (!refreshToken) {
     return res.status(400).json({ message: "No refresh token provided" });
   }
+
   const hashedToken = crypto
     .createHash("sha256")
     .update(refreshToken)

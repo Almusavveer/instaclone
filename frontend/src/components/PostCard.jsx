@@ -1,3 +1,4 @@
+// 
 // src/components/PostCard.jsx
 
 import React, { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ const PostCard = ({ post }) => {
   // ❤️ States
   const [liked, setLiked] = useState(false);
   const [comments, setComments] = useState(0);
+
   const [likesCount, setLikesCount] = useState(
     post.likes?.length || 0
   );
@@ -36,7 +38,7 @@ const PostCard = ({ post }) => {
     });
   };
 
-  // ✅ Check if already liked
+  // ✅ Check like status
   const checkLikeStatus = async () => {
     try {
       const res = await axios.get(
@@ -46,17 +48,14 @@ const PostCard = ({ post }) => {
         }
       );
 
-      // ❤️ Set states from backend
       setLiked(res.data.liked);
-     
       setLikesCount(res.data.likesCount);
-
     } catch (error) {
       console.log("Like status error:", error);
     }
   };
 
-  // ❤️ Like / Unlike Handler
+  // ❤️ Like / Unlike
   const handleLike = async (e) => {
     e.stopPropagation();
 
@@ -72,7 +71,6 @@ const PostCard = ({ post }) => {
 
         setLiked(false);
         setLikesCount(res.data.likesCount);
-
       } else {
         // ❤️ Like
         const res = await axios.post(
@@ -86,40 +84,36 @@ const PostCard = ({ post }) => {
         setLiked(true);
         setLikesCount(res.data.likesCount);
       }
-
     } catch (error) {
       console.log("Like error:", error);
     }
   };
-  // 💬 Fetch Comments Count
-const fetchComments = async () => {
-  try {
+
+  // 💬 Fetch comments count
+  const fetchComments = async () => {
+    try {
       if (!post?._id) return;
-    const res = await axios.get(
-     `${API_BASE}/api/comment/${post._id}/comments`,
-      {
-        withCredentials: true,
-      }
-    );
 
+      const res = await axios.get(
+        `${API_BASE}/api/comment/${post._id}/comments`,
+        {
+          withCredentials: true,
+        }
+      );
 
+      setComments(res.data.comments?.length || 0);
+    } catch (error) {
+      console.log("Comments error:", error);
+    }
+  };
 
+  // 🔄 Load data
+  useEffect(() => {
+    if (!post?._id) return;
 
-  } catch (error) {
-    console.log(
-      "Comments error:",
-      error
-    );
-  }
-};
-  // 🔄 Load Like Status On Mount
-useEffect(() => {
-  if (!post?._id) return;
-
-  checkLikeStatus();
-  fetchComments();
-
-}, [post]);
+    checkLikeStatus();
+    fetchComments();
+  }, [post]);
 
   return (
     <div
@@ -136,6 +130,7 @@ useEffect(() => {
               post.author?.name || "User"
             }&background=6366f1&color=fff`
           }
+
           alt="avatar"
         />
 
@@ -151,7 +146,7 @@ useEffect(() => {
           </div>
 
           <p className="text-sm text-gray-500">
-            @{post.author?.name || "user"}
+            @{post.author?.username || "user"}
           </p>
         </div>
       </div>
@@ -166,17 +161,19 @@ useEffect(() => {
           {post.content}
         </p>
 
-        {post.image && (
-          <img
-            src={post.image}
-            alt="post content"
-            className="mt-3 rounded-xl w-full max-h-96 object-cover"
-          />
-        )}
+        {/* 🖼️ Post Image */}
+        {typeof post.imgUrl === "string" &&
+          post.imgUrl.trim() !== "" && (
+            <img
+              src={post.imgUrl}
+              alt="post"
+              className="mt-3 rounded-xl w-full max-h-96 object-cover"
+            />
+          )}
       </div>
 
       {/* ❤️ Likes & 💬 Comments */}
-      <div  className="mt-4 flex items-center space-x-6 text-gray-500">
+      <div className="mt-4 flex items-center space-x-6 text-gray-500">
 
         {/* ❤️ Like Button */}
         <button
@@ -205,7 +202,7 @@ useEffect(() => {
         </button>
 
         {/* 💬 Comments */}
-        <button 
+        <button
           onClick={handleClick}
           className="flex items-center space-x-1 hover:text-blue-500 transition"
         >

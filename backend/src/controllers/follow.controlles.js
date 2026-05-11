@@ -137,6 +137,7 @@ async function unfollowUser(req, res) {
     res.status(500).json({ message: err.message });
   }
 }
+
 const getFollowStatus = async (req, res) => {
   try {
     const currentUser = await User.findOne({ email: req.user.email });
@@ -146,7 +147,6 @@ const getFollowStatus = async (req, res) => {
       return res.status(400).json({ message: "followingId required" });
     }
     
-
     const followRecord = await Follow.findOne({
       follower: currentUser._id,
       following: followingId,
@@ -158,10 +158,8 @@ const getFollowStatus = async (req, res) => {
   }
 };
 
-
 async function getFollowersAndFollowing(req, res) {
   try {
-
     // ✅ Get email from query
     const { email } = req.query;
 
@@ -216,9 +214,7 @@ async function getFollowersAndFollowing(req, res) {
         (f) => f.following
       ),
     });
-
   } catch (error) {
-
     console.error(
       "Followers/Following Error:",
       error
@@ -231,6 +227,44 @@ async function getFollowersAndFollowing(req, res) {
   }
 }
 
+const getFollowData = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // 👥 Followers
+    const followers = await Follow.find({
+      following: userId,
+    }).populate(
+      "follower",
+      "name username avatar email"
+    );
+
+    // 👤 Following
+    const following = await Follow.find({
+      follower: userId,
+    }).populate(
+      "following",
+      "name username avatar email"
+    );
+
+    res.status(200).json({
+      success: true,
+
+      followersCount: followers.length,
+      followingCount: following.length,
+
+      followers,
+      following,
+    });
+  } catch (error) {
+    console.log("Follow Data Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch follow data",
+    });
+  }
+};
 
 module.exports = {
   followUser,
@@ -239,5 +273,6 @@ module.exports = {
   countStats,
   unfollowUser,
   getFollowStatus,
-  getFollowersAndFollowing
+  getFollowersAndFollowing,
+  getFollowData
 };

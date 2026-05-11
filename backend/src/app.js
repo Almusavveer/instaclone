@@ -5,7 +5,7 @@ app.use(cookieParser())
 app.use(express.json())
 const cors = require("cors");
 
-
+app.use(express.urlencoded({ extended: true }));
 
 // ✅ ADD CORS HERE (top)
 app.use(cors({

@@ -5,10 +5,10 @@ const {
   getFollowers,
   getFollowing,
   countStats,
-    getFollowersAndFollowing
-  
-           // ← new controller for stats
-} = require("../controllers/follow.controlles");  // adjust path if needed
+  getFollowersAndFollowing,
+  getFollowData,
+  // ← new controller for stats
+} = require("../controllers/follow.controlles"); // adjust path if needed
 const {
   likePost,
   unlikePost,
@@ -16,7 +16,7 @@ const {
   getLikeCount,
   getUserPosts,
   getPostById,
-   getLikedPosts
+  getLikedPosts,
 } = require("../controllers/post.controllers"); // adjust path if needed
 
 const { verifyToken } = require("../middleware/token.middleware");
@@ -30,17 +30,15 @@ router.get("/getallfolloweringcount", verifyToken, countStats);
 router.post("/:postId/like", verifyToken, likePost);
 router.delete("/:postId/like", verifyToken, unlikePost);
 router.get("/:postId/like/status", verifyToken, checkIfLiked);
-router.get("/:postId/likes/count", getLikeCount); 
+router.get("/:postId/likes/count", getLikeCount);
 router.get("/liked-posts", verifyToken, getLikedPosts);
 
 router.get("/user-posts/:userId", verifyToken, getUserPosts);
 
-router.get("/:postId",verifyToken,getPostById);
+router.get("/:postId", verifyToken, getPostById);
 
+router.get("/follow/details", verifyToken, getFollowersAndFollowing);
 
-router.get(
-  "/follow/details",verifyToken,
-  getFollowersAndFollowing
-);
+router.get("/data/:userId", getFollowData);
 
 module.exports = router;

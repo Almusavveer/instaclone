@@ -42,15 +42,13 @@ const SinglePostPage = () => {
         setLikesCount(
           fetchedPost.likes?.length || 0
         );
-
       } catch (err) {
         console.error("Error fetching post:", err);
 
         setError(
           err.response?.data?.message ||
-            "Failed to load post."
+          "Failed to load post."
         );
-
       } finally {
         setLoading(false);
       }
@@ -72,7 +70,6 @@ const SinglePostPage = () => {
 
         setLiked(res.data.liked);
         setLikesCount(res.data.likesCount);
-
       } catch (error) {
         console.log(
           "Like status error:",
@@ -100,7 +97,6 @@ const SinglePostPage = () => {
       );
 
       setComments(res.data.comments);
-
     } catch (error) {
       console.log(
         "Comments error:",
@@ -136,13 +132,11 @@ const SinglePostPage = () => {
       }));
 
       setCommentText("");
-
     } catch (error) {
       console.log(
         "Add comment error:",
         error
       );
-
     } finally {
       setCommentLoading(false);
     }
@@ -162,7 +156,6 @@ const SinglePostPage = () => {
 
         setLiked(false);
         setLikesCount(res.data.likesCount);
-
       } else {
         // ❤️ Like
         const res = await axios.post(
@@ -176,7 +169,6 @@ const SinglePostPage = () => {
         setLiked(true);
         setLikesCount(res.data.likesCount);
       }
-
     } catch (error) {
       console.log("Like error:", error);
     }
@@ -278,6 +270,7 @@ const SinglePostPage = () => {
                 post.author?.name || "User"
               }&background=6366f1&color=fff`
             }
+
             alt="avatar"
           />
 
@@ -298,6 +291,7 @@ const SinglePostPage = () => {
 
         {/* 📝 Content */}
         <div className="p-6 pt-3">
+
           <h3 className="text-gray-800 text-3xl leading-relaxed whitespace-pre-wrap">
             {post.title}
           </h3>
@@ -306,13 +300,15 @@ const SinglePostPage = () => {
             {post.content}
           </p>
 
-          {post.image && (
-            <img
-              src={post.image}
-              alt="post"
-              className="mt-4 rounded-xl w-full max-h-96 object-cover"
-            />
-          )}
+          {/* 🖼️ Post Image */}
+          {typeof post.imgUrl === "string" &&
+            post.imgUrl.trim() !== "" && (
+              <img
+                src={post.imgUrl}
+                alt="post"
+                className="mt-4 rounded-xl w-full max-h-[600px] object-cover"
+              />
+            )}
         </div>
 
         {/* ❤️ Actions */}
@@ -389,6 +385,7 @@ const SinglePostPage = () => {
                 onChange={(e) =>
                   setCommentText(e.target.value)
                 }
+
                 placeholder="Write a comment..."
                 rows="2"
                 className="w-full border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -424,6 +421,7 @@ const SinglePostPage = () => {
                         comment.author?.name || "User"
                       }&background=9ca3af&color=fff`
                     }
+
                     alt="avatar"
                   />
 
@@ -450,8 +448,7 @@ const SinglePostPage = () => {
             </div>
           ) : (
             <p className="text-gray-400 text-sm">
-              No comments yet. Be the first to
-              comment!
+              No comments yet. Be the first to comment!
             </p>
           )}
         </div>

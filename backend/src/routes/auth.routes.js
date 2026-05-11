@@ -9,6 +9,7 @@ const {
   rotaterefreshToken,
   logoutAll,
 } = require("../controllers/auth.controllers");
+const upload = require("../middleware/multer");
 // 📝 Comment: login import can be used from destructuring above
 // const {login}=require("../controllers/auth.controllers")
 // 📦 Import post controller function
@@ -21,11 +22,11 @@ const { getPosts ,getMyPosts } = require("../controllers/post.controllers");
 const router = Router();
 
 // 📝 POST route for user registration (no authentication required)
-router.post("/register", register);
+router.post("/register", upload.single("avatar"), register);
 // 🔑 POST route for user login (no authentication required)
 router.post("/login", login);
 // ✍️ POST route for creating a new post (authentication required)
-router.post("/create-post", verifyToken, createpost);
+router.post("/create-post", verifyToken,  upload.single("image") ,createpost);
 // 👤 GET route for fetching user profile (authentication required)
 router.get("/user", verifyToken, getUser);
 // 🚪 POST route for user logout (no authentication required)

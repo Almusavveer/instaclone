@@ -33,13 +33,18 @@ const postSchema = new mongoose.Schema(
       required: true,
     },
 
+    // ✅ Image URL
+    imgUrl: {
+      type: String,
+      default: "",
+    },
+
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
-    // ❤️ Likes
     likes: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -47,7 +52,6 @@ const postSchema = new mongoose.Schema(
       },
     ],
 
-    // 💬 Comments
     comments: [commentSchema],
   },
   {
