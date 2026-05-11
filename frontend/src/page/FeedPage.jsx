@@ -11,17 +11,9 @@ const FeedPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-<<<<<<< HEAD
   const { currentUser } = useAuth();
 
   const API_BASE = "http://localhost:3000";
-=======
-  const [currentUserId, setCurrentUserId] = useState(""); //eddited by farhan
-
-  const API_BASE = "http://localhost:3000";
-
-
->>>>>>> eccc804cacdfd56e83e42beee89b140ace3b06d5
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -31,7 +23,6 @@ const FeedPage = () => {
         });
 
         setPosts(res.data.posts || res.data);
-
       } catch (err) {
         console.error("Error fetching feed:", err);
         setError("Failed to load posts. Please try again later.");
@@ -75,21 +66,10 @@ const FeedPage = () => {
       </h1>
 
       <div className="mb-2.5">
-<<<<<<< HEAD
         <SearchBar
           placeholder="Search users..."
           currentUserId={currentUser?._id}
         />
-=======
-        {/* <SearchBar placeholder="Search users..." /> */}
-
-        <SearchBar                  //edited by farhan
-          placeholder="Search users..."
-          currentUserId={currentUserId}
-          setCurrentUserId={setCurrentUserId} 
-          />
-          
->>>>>>> eccc804cacdfd56e83e42beee89b140ace3b06d5
       </div>
 
       {posts.length === 0 ? (

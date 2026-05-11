@@ -28,7 +28,6 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-<<<<<<< HEAD
     setIsLoading(true);
 
     try {
@@ -44,15 +43,6 @@ export default function Login() {
       setCurrentUser(data.user);
 
       navigate("/");
-=======
-      //eddited by farhan - save logged in user globally
-      setCurrentUser(data.user);
-
-      console.log(data.user)
-      
-      navigate("/")
->>>>>>> eccc804cacdfd56e83e42beee89b140ace3b06d5
-
     } catch (err) {
       console.error(err);
 
@@ -86,6 +76,7 @@ export default function Login() {
         .animate-fade-up {
           animation: fadeInUp 0.5s ease-out forwards;
         }
+
       `}</style>
 
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -218,6 +209,7 @@ export default function Login() {
                 onChange={(e) =>
                   setRememberMe(e.target.checked)
                 }
+
                 className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
 
