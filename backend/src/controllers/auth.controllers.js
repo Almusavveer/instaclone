@@ -263,6 +263,7 @@ const deviceName = req.body.deviceName || "Unknown Device";
 // 🔍 Check existing session (same device)
 let existingSession = await Session.findOne({
   user: userExists._id,
+  revoked:false,
   userAgent,
   ip
 });
@@ -342,7 +343,6 @@ res.cookie(
       1000,
   });
 
-
   const accessToken = jwt.sign(
       {
         email: userExists.email,
@@ -354,7 +354,6 @@ res.cookie(
       },
     );
 
-  
    return res.status(200).json({
       message: "Login successful",
       user: userExists,
@@ -377,6 +376,7 @@ async function logout(req, res) {
     .createHash("sha256")
     .update(refreshToken)
     .digest("hex");
+    
   console.log("Hashed Token on Logout:", hashedToken); // Debugging log
   // 🔍 Find and validate session
   const session = await Session.findOne({
@@ -566,7 +566,6 @@ async function getCurrentUser(
   }
 }
 
-
 // ✅ Update Profile
 async function updateProfile(
   req,
@@ -644,7 +643,6 @@ async function updateProfile(
     });
   }
 }
-
 
 module.exports = {
   register,

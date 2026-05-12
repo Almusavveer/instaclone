@@ -1,4 +1,3 @@
-// 
 // src/components/PostCard.jsx
 
 import React, { useEffect, useState } from "react";
@@ -7,9 +6,11 @@ import axios from "axios";
 
 const PostCard = ({ post }) => {
   const navigate = useNavigate();
+
   // ❤️ States
   const [liked, setLiked] = useState(false);
   const [comments, setComments] = useState(0);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [likesCount, setLikesCount] = useState(
     post.likes?.length || 0
@@ -18,6 +19,7 @@ const PostCard = ({ post }) => {
   // 🌐 Backend URL
   const API_URL = "http://localhost:3000/api/post";
   const API_BASE = "http://localhost:3000";
+  const USER_API = "http://localhost:3000/api/auth";
 
   // 📅 Format Date
   const formatDate = (dateString) => {
@@ -35,6 +37,22 @@ const PostCard = ({ post }) => {
     navigate(`/post/${post._id}`, {
       state: { post },
     });
+  };
+
+  // ✅ Get logged in user
+  const getCurrentUser = async () => {
+    try {
+      const res = await axios.get(
+        `${USER_API}/me`,
+        {
+          withCredentials: true,
+        }
+      );
+
+      setCurrentUser(res.data.user);
+    } catch (error) {
+      console.log("User fetch error:", error);
+    }
   };
 
   // ✅ Check like status
@@ -88,6 +106,36 @@ const PostCard = ({ post }) => {
     }
   };
 
+  // 🗑️ Delete Post
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+
+    try {
+      const confirmDelete = window.confirm(
+        "Are you sure you want to delete this post?"
+      );
+
+      if (!confirmDelete) return;
+
+      await axios.delete(
+        `${USER_API}/delete/${post._id}`,
+        {
+          withCredentials: true,
+        }
+      );
+
+      // ✅ Refresh page
+      window.location.reload();
+    } catch (error) {
+      console.log("Delete error:", error);
+
+      alert(
+        error.response?.data?.message ||
+        "Failed to delete post"
+      );
+    }
+  };
+
   // 💬 Fetch comments count
   const fetchComments = async () => {
     try {
@@ -112,6 +160,7 @@ const PostCard = ({ post }) => {
 
     checkLikeStatus();
     fetchComments();
+    getCurrentUser();
   }, [post]);
 
   return (
@@ -139,9 +188,34 @@ const PostCard = ({ post }) => {
               {post.author?.name || "Anonymous"}
             </h3>
 
-            <span className="text-xs text-gray-400">
-              {formatDate(post.createdAt)}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-400">
+                {formatDate(post.createdAt)}
+              </span>
+
+              {/* ✅ Show delete only to owner */}
+              {currentUser?._id === post.author?._id && (
+                <button
+                  onClick={handleDelete}
+                  className="text-red-500 hover:text-red-700 transition"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0h8m-9 0a1 1 0 011-1h6a1 1 0 011 1"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
 
           <p className="text-sm text-gray-500">

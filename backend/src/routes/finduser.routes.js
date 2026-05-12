@@ -7,4 +7,5 @@ router.get("/search", verifyToken, search);
 router.get("/:userId", verifyToken, anotheruserprofile);
 router.delete("/follow", verifyToken, unfollowUser);
 router.get("/follow/status", verifyToken, getFollowStatus);
+
 module.exports = router;

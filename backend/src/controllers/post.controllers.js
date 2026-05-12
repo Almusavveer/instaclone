@@ -1,34 +1,6 @@
 const User = require("../model/user");
 const Post = require("../model/post"); // assuming you have this
 const imagekit = require("../db/imagekit")
-// async function createpost(req, res) {
-//   try {
-//     const { title, content } = req.body;
-
-//     // 🔥 Find user using email from token
-//     const user = await User.findOne({ email: req.user.email });
-
-//     if (!user) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
-    
-//     // 🔥 Create post with user ID
-//     const post = await Post.create({
-//       title,
-//       content,
-//       author: user._id,
-//       image: req.file ? req.file.path : null, // handle image upload if using multer
-//     });
-
-//     res.status(201).json({
-//       message: "Post created successfully",
-//       post,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// }
-
 async function createpost(req, res) {
   try {
     const { title, content } = req.body;
@@ -398,6 +370,63 @@ async function anotheruserprofile(req, res) {
   }
 }
 
+// Delete own post
+const deletePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    // ✅ Find logged in user
+    const user = await User.findOne({
+      email: req.user.email,
+    });
+    
+    console.log("Found user:", user);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    // ✅ Get only user id
+    const loggedInUserId = user._id;
+
+    // ✅ Find post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    // ✅ Check ownership
+    if (
+      post.author.toString() !==
+      loggedInUserId.toString()
+    ) {
+      return res.status(403).json({
+        message:
+          "You can delete only your own post",
+      });
+    }
+
+    // ✅ Delete post
+    await Post.findByIdAndDelete(postId);
+
+    res.status(200).json({
+      success: true,
+      message: "Post deleted successfully",
+    });
+  } catch (error) {
+    console.log("Delete error:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createpost,
   getPosts,
@@ -412,5 +441,6 @@ module.exports = {
   getLikeCount,
   getPostById,
   anotheruserprofile,
-  getLikedPosts 
+  getLikedPosts ,
+  deletePost
 };

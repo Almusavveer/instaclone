@@ -64,7 +64,7 @@ const getFollowers = async (req, res) => {
 
   const followers = await Follow.find({ following: userId }).populate(
     "follower",
-    "name email",
+    "name  email",
   );
 
   res.status(200).json({
@@ -80,7 +80,7 @@ const getFollowing = async (req, res) => {
   try {
     const following = await Follow.find({ follower: userId }).populate(
       "following",
-      "name email",
+      "name  email",
     ); // get user details
 
     res.status(200).json({
@@ -166,8 +166,6 @@ async function getFollowersAndFollowing(req, res) {
     // ✅ Find user
     const user = await User.findOne({ email });
 
-    console.log("User for Follow Data:", user);
-
     // ❌ User not found
     if (!user) {
       return res.status(404).json({
@@ -183,7 +181,7 @@ async function getFollowersAndFollowing(req, res) {
       following: userId,
     }).populate(
       "follower",
-      "name  email"
+      "name avatar email"
     );
 
     // ➡️ Following
@@ -191,9 +189,9 @@ async function getFollowersAndFollowing(req, res) {
       follower: userId,
     }).populate(
       "following",
-      "name  email"
+      "name avatar email"
     );
-
+    console.log(following)
     // 📊 Counts
     const followersCount = followers.length;
     const followingCount = following.length;

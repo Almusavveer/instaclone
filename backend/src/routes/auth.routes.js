@@ -15,7 +15,7 @@ const upload = require("../middleware/multer");
 // 📝 Comment: login import can be used from destructuring above
 // const {login}=require("../controllers/auth.controllers")
 // 📦 Import post controller function
-const { createpost } = require("../controllers/post.controllers");
+const { createpost ,deletePost } = require("../controllers/post.controllers");
 // 📦 Import middleware for token verification
 const { verifyToken ,verifyTokenfrontend} = require("../middleware/token.middleware");
 
@@ -57,5 +57,11 @@ router.get(
   "/me",
   verifyToken,
   getCurrentUser
+);
+
+router.delete(
+  "/delete/:postId",
+  verifyToken,
+  deletePost
 );
 module.exports = router;

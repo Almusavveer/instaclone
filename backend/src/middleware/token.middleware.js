@@ -3,8 +3,7 @@ const User = require("../model/user");
 
 function verifyToken(req, res, next) {
  const token = req.cookies.refreshToken;
-
-  
+ 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized po" });
   }
@@ -12,14 +11,12 @@ function verifyToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = decoded; // contains id + email
-    
+    req.user = decoded;
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid token" });
   }
 }
-
 
 function verifyTokenfrontend(req, res, next) {  // ✅ add 'next' parameter
   const token = req.headers.refreshToken;
