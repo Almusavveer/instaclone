@@ -1,75 +1,62 @@
 // src/components/PostCard.jsx
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const PostCard = ({ post }) => {
+const PostCard = ({ post, currentUser }) => {
   const navigate = useNavigate();
 
   // ❤️ States
-  const [liked, setLiked] = useState(false);
-  const [comments, setComments] = useState(0);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  const [likesCount, setLikesCount] = useState(
-    post.likes?.length || 0
+  const [liked, setLiked] = useState(
+    post.isLiked || false
   );
 
-  // 🌐 Backend URL
-  const API_URL = "http://localhost:3000/api/post";
-  const API_BASE = "http://localhost:3000";
-  const USER_API = "http://localhost:3000/api/auth";
+  const [likesCount, setLikesCount] = useState(
+    post.likesCount || 0
+  );
+
+  // ⋮ Menu State
+  const [showMenu, setShowMenu] =
+    useState(false);
+
+  // 🌐 API
+  const API_URL =
+    "http://localhost:3000/api/post";
+
+  const USER_API =
+    "http://localhost:3000/api/auth";
 
   // 📅 Format Date
-  const formatDate = (dateString) => {
+  const formatDate = (
+    dateString
+  ) => {
     const date = new Date(dateString);
 
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    return date.toLocaleDateString(
+      "en-US",
+      {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }
+    );
   };
 
-  // 🚀 Navigate to post page
+  // 🚀 Open Post
   const handleClick = () => {
     navigate(`/post/${post._id}`, {
       state: { post },
     });
   };
 
-  // ✅ Get logged in user
-  const getCurrentUser = async () => {
-    try {
-      const res = await axios.get(
-        `${USER_API}/me`,
-        {
-          withCredentials: true,
-        }
-      );
+  // ✏️ Edit Post
+  const handleEdit = (e) => {
+    e.stopPropagation();
 
-      setCurrentUser(res.data.user);
-    } catch (error) {
-      console.log("User fetch error:", error);
-    }
-  };
-
-  // ✅ Check like status
-  const checkLikeStatus = async () => {
-    try {
-      const res = await axios.get(
-        `${API_URL}/${post._id}/like/status`,
-        {
-          withCredentials: true,
-        }
-      );
-
-      setLiked(res.data.liked);
-      setLikesCount(res.data.likesCount);
-    } catch (error) {
-      console.log("Like status error:", error);
-    }
+    navigate("/edit-post", {
+      state: { post },
+    });
   };
 
   // ❤️ Like / Unlike
@@ -87,7 +74,10 @@ const PostCard = ({ post }) => {
         );
 
         setLiked(false);
-        setLikesCount(res.data.likesCount);
+
+        setLikesCount(
+          res.data.likesCount
+        );
       } else {
         // ❤️ Like
         const res = await axios.post(
@@ -99,10 +89,16 @@ const PostCard = ({ post }) => {
         );
 
         setLiked(true);
-        setLikesCount(res.data.likesCount);
+
+        setLikesCount(
+          res.data.likesCount
+        );
       }
     } catch (error) {
-      console.log("Like error:", error);
+      console.log(
+        "Like error:",
+        error
+      );
     }
   };
 
@@ -111,9 +107,10 @@ const PostCard = ({ post }) => {
     e.stopPropagation();
 
     try {
-      const confirmDelete = window.confirm(
-        "Are you sure you want to delete this post?"
-      );
+      const confirmDelete =
+        window.confirm(
+          "Are you sure you want to delete this post?"
+        );
 
       if (!confirmDelete) return;
 
@@ -124,44 +121,21 @@ const PostCard = ({ post }) => {
         }
       );
 
-      // ✅ Refresh page
+      // ✅ Refresh
       window.location.reload();
     } catch (error) {
-      console.log("Delete error:", error);
+      console.log(
+        "Delete error:",
+        error
+      );
 
       alert(
-        error.response?.data?.message ||
-        "Failed to delete post"
+        error.response?.data
+          ?.message ||
+          "Failed to delete post"
       );
     }
   };
-
-  // 💬 Fetch comments count
-  const fetchComments = async () => {
-    try {
-      if (!post?._id) return;
-
-      const res = await axios.get(
-        `${API_BASE}/api/comment/${post._id}/comments`,
-        {
-          withCredentials: true,
-        }
-      );
-
-      setComments(res.data.comments?.length || 0);
-    } catch (error) {
-      console.log("Comments error:", error);
-    }
-  };
-
-  // 🔄 Load data
-  useEffect(() => {
-    if (!post?._id) return;
-
-    checkLikeStatus();
-    fetchComments();
-    getCurrentUser();
-  }, [post]);
 
   return (
     <div
@@ -170,12 +144,14 @@ const PostCard = ({ post }) => {
     >
       {/* 👤 Header */}
       <div className="flex items-start space-x-3">
+
         <img
           className="w-10 h-10 rounded-full object-cover"
           src={
             post.author?.avatar ||
             `https://ui-avatars.com/api/?name=${
-              post.author?.name || "User"
+              post.author?.name ||
+              "User"
             }&background=6366f1&color=fff`
           }
 
@@ -183,49 +159,107 @@ const PostCard = ({ post }) => {
         />
 
         <div className="flex-1">
-          <div className="flex items-center flex-wrap justify-between">
-            <h3 className="font-semibold text-gray-800">
-              {post.author?.name || "Anonymous"}
-            </h3>
 
+          <div className="flex items-center flex-wrap justify-between">
+
+            {/* 👤 User */}
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                {post.author?.name ||
+                  "Anonymous"}
+              </h3>
+
+              <p className="text-sm text-gray-500">
+                @
+                {post.author
+                  ?.username || "user"}
+              </p>
+            </div>
+
+            {/* 📅 Date + Menu */}
             <div className="flex items-center gap-3">
+
               <span className="text-xs text-gray-400">
-                {formatDate(post.createdAt)}
+                {formatDate(
+                  post.createdAt
+                )}
               </span>
 
-              {/* ✅ Show delete only to owner */}
-              {currentUser?._id === post.author?._id && (
-                <button
-                  onClick={handleDelete}
-                  className="text-red-500 hover:text-red-700 transition"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
+              {/* ⋮ ONLY OWNER */}
+              {currentUser?._id ===
+                post.author?._id && (
+                <div className="relative">
+
+                  {/* ⋮ Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+
+                      setShowMenu(
+                        !showMenu
+                      );
+                    }}
+
+                    className="p-1 rounded-full hover:bg-gray-100 transition"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0h8m-9 0a1 1 0 011-1h6a1 1 0 011 1"
-                    />
-                  </svg>
-                </button>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-5 h-5 text-gray-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 6h.01M12 12h.01M12 18h.01"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* 📦 Dropdown */}
+                  {showMenu && (
+                    <div
+                      onClick={(e) =>
+                        e.stopPropagation()
+                      }
+
+                      className="absolute right-0 mt-2 w-36 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden"
+                    >
+                      {/* ✏️ Edit */}
+                      <button
+                        onClick={
+                          handleEdit
+                        }
+
+                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition"
+                      >
+                        Edit Post
+                      </button>
+
+                      {/* 🗑️ Delete */}
+                      <button
+                        onClick={
+                          handleDelete
+                        }
+
+                        className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-50 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
-
-          <p className="text-sm text-gray-500">
-            @{post.author?.username || "user"}
-          </p>
         </div>
       </div>
 
-      {/* 📝 Post Content */}
+      {/* 📝 Content */}
       <div className="mt-3">
+
         <h2 className="text-black leading-relaxed mb-1 font-medium text-lg">
           {post.title}
         </h2>
@@ -234,9 +268,11 @@ const PostCard = ({ post }) => {
           {post.content}
         </p>
 
-        {/* 🖼️ Post Image */}
-        {typeof post.imgUrl === "string" &&
-          post.imgUrl.trim() !== "" && (
+        {/* 🖼️ Image */}
+        {typeof post.imgUrl ===
+          "string" &&
+          post.imgUrl.trim() !==
+            "" && (
             <img
               src={post.imgUrl}
               alt="post"
@@ -246,55 +282,102 @@ const PostCard = ({ post }) => {
       </div>
 
       {/* ❤️ Likes & 💬 Comments */}
-      <div className="mt-4 flex items-center space-x-6 text-gray-500">
+      <div className="mt-4 flex items-center justify-between text-gray-500">
 
-        {/* ❤️ Like Button */}
-        <button
-          onClick={handleLike}
-          className="flex items-center space-x-1 transition"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className={`w-5 h-5 transition ${
-              liked
-                ? "text-red-500 fill-red-500"
-                : "text-gray-500 fill-none hover:text-red-500"
-            }`}
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth="2"
+        {/* LEFT */}
+        <div className="flex items-center space-x-6">
+
+          {/* ❤️ Like */}
+          <button
+            onClick={handleLike}
+            className="flex items-center space-x-1 transition"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-            />
-          </svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`w-5 h-5 transition ${
+                liked
+                  ? "text-red-500 fill-red-500"
+                  : "text-gray-500 fill-none hover:text-red-500"
+              }`}
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
 
-          <span>{likesCount}</span>
-        </button>
+            <span>
+              {likesCount}
+            </span>
+          </button>
 
-        {/* 💬 Comments */}
-        <button
-          onClick={handleClick}
-          className="flex items-center space-x-1 hover:text-blue-500 transition"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          {/* 💬 Comments */}
+          <button
+            onClick={handleClick}
+            className="flex items-center space-x-1 hover:text-blue-500 transition"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
 
-          <span>{comments || 0}</span>
-        </button>
+            <span>
+              {post.commentsCount ||
+                0}
+            </span>
+          </button>
+        </div>
+
+        {/* ❤️ Liked Users */}
+        {post.likedUsers?.length >
+          0 && (
+          <div className="flex items-center gap-2">
+
+            {/* 👤 Avatars */}
+            <div className="flex -space-x-2">
+
+              {post.likedUsers
+                .slice(0, 2)
+                .map((user) => (
+                  <img
+                    key={user._id}
+                    src={
+                      user.avatar ||
+                      `https://ui-avatars.com/api/?name=${user.name}`
+                    }
+
+                    alt={user.name}
+                    className="w-7 h-7 rounded-full border-2 border-white object-cover"
+                  />
+                ))}
+            </div>
+
+            {/* 👤 Names */}
+            <p className="text-sm text-gray-600">
+
+              {post.likedUsers
+                .slice(0, 2)
+                .map((u) => u.name)
+                .join(", ")}
+
+              {likesCount > 2 &&
+                " ..."}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

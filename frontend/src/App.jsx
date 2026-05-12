@@ -1,46 +1,103 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+// src/App.jsx
+
+import {
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import axios from "axios";
+
+// 📄 Pages
 import Login from "./page/Login";
 import Register from "./page/Register";
 import Profile from "./page/Profile";
-import SinglePostPage from "./components/SinglePostPage";
-import UserProfilePage from "./components/UserProfilePage";
 import CreatePostPage from "./page/CreatePostPage";
 import EditProfile from "./page/EditProfile";
-
 import FollowPage from "./page/FollowPage";
-// ✅ Protected Route Middleware – validates token before rendering page
-function ProtectedRoute({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading
+import EditPostPage from "./page/EditPostPage";
+
+// 📄 Components
+import SinglePostPage from "./components/SinglePostPage";
+import UserProfilePage from "./components/UserProfilePage";
+
+// ✅ Protected Route
+function ProtectedRoute({
+  children,
+}) {
+  const [
+    isAuthenticated,
+    setIsAuthenticated,
+  ] = useState(null);
 
   useEffect(() => {
-    const verify = async () => {
-      try {
-        await axios.get("http://localhost:3000/api/auth/user", {
-          withCredentials: true, // 👈 sends the cookie
-        });
-        setIsAuthenticated(true);
-      } catch (err) {
-        localStorage.removeItem("token"); // clear any leftover localStorage
-        setIsAuthenticated(false);
-      }
-    };
+    const verify =
+      async () => {
+        try {
+          await axios.get(
+            "http://localhost:3000/api/auth/user",
+            {
+              withCredentials: true,
+            }
+          );
+
+          setIsAuthenticated(
+            true
+          );
+        } catch (err) {
+          localStorage.removeItem(
+            "token"
+          );
+
+          setIsAuthenticated(
+            false
+          );
+        }
+      };
+
     verify();
   }, []);
 
-  if (isAuthenticated === null) return <div>Loading...</div>; // or a spinner
+  // ⏳ Loading
+  if (
+    isAuthenticated === null
+  ) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading...
+      </div>
+    );
+  }
 
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  // ✅ Auth Check
+  return isAuthenticated ? (
+    children
+  ) : (
+    <Navigate to="/login" />
+  );
 }
 
 export default function App() {
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      {/* Protected route – only accessible with valid token */}
+
+      {/* 🔓 Public Routes */}
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      <Route
+        path="/register"
+        element={<Register />}
+      />
+
+      {/* 🏠 Home */}
       <Route
         path="/"
         element={
@@ -48,7 +105,10 @@ export default function App() {
             <Profile />
           </ProtectedRoute>
         }
+
       />
+
+      {/* 📄 Single Post */}
       <Route
         path="/post/:postId"
         element={
@@ -56,8 +116,10 @@ export default function App() {
             <SinglePostPage />
           </ProtectedRoute>
         }
+
       />
-      // Inside Routes (protected)
+
+      {/* ➕ Create Post */}
       <Route
         path="/create-post"
         element={
@@ -65,7 +127,21 @@ export default function App() {
             <CreatePostPage />
           </ProtectedRoute>
         }
+
       />
+
+      {/* ✏️ Edit Post */}
+      <Route
+        path="/edit-post"
+        element={
+          <ProtectedRoute>
+            <EditPostPage />
+          </ProtectedRoute>
+        }
+
+      />
+
+      {/* 👤 User Profile */}
       <Route
         path="/profile"
         element={
@@ -76,6 +152,7 @@ export default function App() {
 
       />
 
+      {/* 👥 Follow Page */}
       <Route
         path="/follow"
         element={
@@ -83,15 +160,25 @@ export default function App() {
             <FollowPage />
           </ProtectedRoute>
         }
+
       />
+
+      {/* ✏️ Edit Profile */}
       <Route
         path="/edit-profile"
-        element={<ProtectedRoute><EditProfile /></ProtectedRoute>}
+        element={
+          <ProtectedRoute>
+            <EditProfile />
+          </ProtectedRoute>
+        }
+
       />
 
-
-      {/* Redirect any unknown path to login or profile */}
-      <Route path="*" element={<Navigate to="/" />} />
+      {/* ❌ Unknown Routes */}
+      <Route
+        path="*"
+        element={<Navigate to="/" />}
+      />
     </Routes>
   );
 }

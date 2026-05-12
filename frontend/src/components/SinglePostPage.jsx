@@ -374,11 +374,16 @@ const SinglePostPage = () => {
           {/* ✍️ Add Comment */}
           <div className="flex items-start space-x-3 mb-6">
             <img
-              className="w-9 h-9 rounded-full"
-              src={`https://ui-avatars.com/api/?name=You&background=6366f1&color=fff`}
-              alt="user"
-            />
+            className="w-12 h-12 rounded-full object-cover"
+            src={
+              post.author?.avatar ||
+              `https://ui-avatars.com/api/?name=${
+                post.author?.name || "User"
+              }&background=6366f1&color=fff`
+            }
 
+            alt="avatar"
+          />
             <div className="flex-1">
               <textarea
                 value={commentText}

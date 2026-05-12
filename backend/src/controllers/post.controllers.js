@@ -57,12 +57,44 @@ async function createpost(req, res) {
   }
 }
 
+// async function getPosts(req, res) {
+//   try {
+//     const posts = await Post.find().populate("author", "avatar name");
+//     res.status(200).json({ posts });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// }
 async function getPosts(req, res) {
   try {
-    const posts = await Post.find().populate("author", "avatar name");
-    res.status(200).json({ posts });
+    const posts = await Post.find()
+      .populate("author", "avatar name username")
+      .populate("likes", "avatar name username")
+      .populate("comments.author", "avatar name username")
+      .lean();
+
+    // ✅ Format posts
+    const formattedPosts = posts.map((post) => ({
+      ...post,
+
+      // ❤️ Total likes count
+      likesCount: post.likes?.length || 0,
+
+      // 💬 Total comments count
+      commentsCount: post.comments?.length || 0,
+
+      // ❤️ Only first 2 liked users
+      likedUsers: post.likes?.slice(0, 2) || [],
+    }));
+
+    res.status(200).json({
+      success: true,
+      posts: formattedPosts,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 }
 
@@ -426,6 +458,87 @@ const deletePost = async (req, res) => {
     });
   }
 };
+async function editPost(req, res) {
+  try {
+    // 📦 Request Data
+    const {
+      postId,
+      title,
+      content,
+    } = req.body;
+
+    // 👤 Logged In User
+    const user =
+      await User.findOne({
+        email: req.user.email,
+      });
+
+    // ❌ User not found
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "User not found",
+      });
+    }
+
+    const userId = user._id;
+
+    // 🔍 Find Post
+    const post =
+      await Post.findById(postId);
+
+    // ❌ Post not found
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Post not found",
+      });
+    }
+
+    // ❌ Unauthorized
+    if (
+      post.author.toString() !==
+      userId.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Unauthorized",
+      });
+    }
+
+    // ✅ Update only title & content
+    post.title =
+      title || post.title;
+
+    post.content =
+      content || post.content;
+
+    // 💾 Save
+    await post.save();
+
+    // ✅ Success Response
+    res.status(200).json({
+      success: true,
+      message:
+        "Post updated successfully",
+      post,
+    });
+  } catch (error) {
+    console.log(
+      "Edit Post Error:",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      message:
+        "Failed to update post",
+    });
+  }
+}
 
 module.exports = {
   createpost,
@@ -442,5 +555,6 @@ module.exports = {
   getPostById,
   anotheruserprofile,
   getLikedPosts ,
-  deletePost
+  deletePost,
+  editPost
 };
