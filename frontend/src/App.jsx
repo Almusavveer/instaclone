@@ -1,15 +1,8 @@
 // src/App.jsx
 
-import {
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
 import axios from "axios";
 
@@ -21,52 +14,36 @@ import CreatePostPage from "./page/CreatePostPage";
 import EditProfile from "./page/EditProfile";
 import FollowPage from "./page/FollowPage";
 import EditPostPage from "./page/EditPostPage";
+import ChatPage from "./page/ChatPage";
 
 // 📄 Components
 import SinglePostPage from "./components/SinglePostPage";
 import UserProfilePage from "./components/UserProfilePage";
 
 // ✅ Protected Route
-function ProtectedRoute({
-  children,
-}) {
-  const [
-    isAuthenticated,
-    setIsAuthenticated,
-  ] = useState(null);
+function ProtectedRoute({ children }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
 
   useEffect(() => {
-    const verify =
-      async () => {
-        try {
-          await axios.get(
-            "http://localhost:3000/api/auth/user",
-            {
-              withCredentials: true,
-            }
-          );
+    const verify = async () => {
+      try {
+        await axios.get("http://localhost:3000/api/auth/user", {
+          withCredentials: true,
+        });
 
-          setIsAuthenticated(
-            true
-          );
-        } catch (err) {
-          localStorage.removeItem(
-            "token"
-          );
+        setIsAuthenticated(true);
+      } catch (err) {
+        localStorage.removeItem("token");
 
-          setIsAuthenticated(
-            false
-          );
-        }
-      };
+        setIsAuthenticated(false);
+      }
+    };
 
     verify();
   }, []);
 
   // ⏳ Loading
-  if (
-    isAuthenticated === null
-  ) {
+  if (isAuthenticated === null) {
     return (
       <div className="flex justify-center items-center h-screen">
         Loading...
@@ -75,27 +52,16 @@ function ProtectedRoute({
   }
 
   // ✅ Auth Check
-  return isAuthenticated ? (
-    children
-  ) : (
-    <Navigate to="/login" />
-  );
+  return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
 export default function App() {
   return (
     <Routes>
-
       {/* 🔓 Public Routes */}
-      <Route
-        path="/login"
-        element={<Login />}
-      />
+      <Route path="/login" element={<Login />} />
 
-      <Route
-        path="/register"
-        element={<Register />}
-      />
+      <Route path="/register" element={<Register />} />
 
       {/* 🏠 Home */}
       <Route
@@ -174,11 +140,19 @@ export default function App() {
 
       />
 
-      {/* ❌ Unknown Routes */}
+      {/* 💬 Chat Page */}
       <Route
-        path="*"
-        element={<Navigate to="/" />}
+        path="/chat"
+        element={
+          <ProtectedRoute>
+            <ChatPage />
+          </ProtectedRoute>
+        }
+
       />
+
+      {/* ❌ Unknown Routes */}
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 }
