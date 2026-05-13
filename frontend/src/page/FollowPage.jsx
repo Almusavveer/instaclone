@@ -1,19 +1,27 @@
 // src/pages/FollowPage.jsx
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
-import SearchBar from "../components/SearchBar";
+import {
+  FiArrowLeft,
+  FiUsers,
+  FiUserPlus,
+  FiMessageCircle,
+  FiSearch,
+} from "react-icons/fi";
 
 const API_BASE = "http://localhost:3000";
 
 const FollowPage = () => {
   const location = useLocation();
-  const userId = location.state?.userId;
   const navigate = useNavigate();
+
+  const userId = location.state?.userId;
 
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
+
   const [counts, setCounts] = useState({
     followers: 0,
     following: 0,
@@ -29,17 +37,34 @@ const FollowPage = () => {
 
   const fetchFollowData = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/api/post/follow/details`, {
-        params: { email: userId },
-        withCredentials: true,
-      });
-      console.log(res.data)
-      setFollowers(res.data.followers || []);
-      setFollowing(res.data.following || []);
+      setLoading(true);
+
+      const res = await axios.get(
+        `${API_BASE}/api/post/follow/details`,
+        {
+          params: {
+            email: userId,
+          },
+          withCredentials: true,
+        }
+      );
+
+      console.log(res.data);
+
+      const followersData = Array.isArray(res.data.followers)
+        ? res.data.followers
+        : [];
+
+      const followingData = Array.isArray(res.data.following)
+        ? res.data.following
+        : [];
+
+      setFollowers(followersData);
+      setFollowing(followingData);
 
       setCounts({
-        followers: res.data.followers?.length || 0,
-        following: res.data.following?.length || 0,
+        followers: followersData.length,
+        following: followingData.length,
       });
     } catch (error) {
       console.log("Follow Fetch Error:", error);
@@ -48,250 +73,281 @@ const FollowPage = () => {
     }
   };
 
-  const normalizeUser = (user) => {
-    return user?.follower || user?.following || user;
+  // normalize follower/following structure
+  const normalizeUser = (item) => {
+    if (!item) return null;
+
+    return item.follower || item.following || item;
+  };
+
+  const getDisplayName = (user) => {
+    if (!user) return "Unknown User";
+
+    if (user.name && user.name !== "null") {
+      return user.name;
+    }
+
+    if (user.username) {
+      return user.username;
+    }
+
+    if (user.email) {
+      return user.email.split("@")[0];
+    }
+
+    return "Unknown User";
   };
 
   const filterUsers = (users) => {
-    if (!searchTerm) return users;
+    if (!searchTerm.trim()) return users;
 
     return users.filter((item) => {
       const user = normalizeUser(item);
 
+      if (!user) return false;
+
+      const search = searchTerm.toLowerCase();
+
       return (
-        user?.username
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        user?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        user?.username?.toLowerCase()?.includes(search) ||
+        user?.name?.toLowerCase()?.includes(search) ||
+        user?.email?.toLowerCase()?.includes(search)
       );
     });
   };
 
-  const filteredFollowers = useMemo(
-    () => filterUsers(followers),
-    [followers, searchTerm]
-  );
+  const filteredFollowers = useMemo(() => {
+    return filterUsers(followers);
+  }, [followers, searchTerm]);
 
-  const filteredFollowing = useMemo(
-    () => filterUsers(following),
-    [following, searchTerm]
-  );
+  const filteredFollowing = useMemo(() => {
+    return filterUsers(following);
+  }, [following, searchTerm]);
 
-  const getDisplayName = (user) => {
-    if (user?.name) return user.name;
-    if (user?.email) return user.email.split("@")[0];
-    return "User";
-  };
-
-  const Avatar = ({ user }) => {
-    const userData = normalizeUser(user);
+  const Avatar = ({ item }) => {
+    const user = normalizeUser(item);
 
     return (
-      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-md overflow-hidden">
+      <div className="w-14 h-14 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 shrink-0">
         <img
-          className="rounded-full w-full h-full object-cover"
           src={
-            userData?.avatar ||
+            user?.avatar ||
             `https://ui-avatars.com/api/?name=${
-              userData?.name || userData?.username || "User"
-            }&background=6366f1&color=fff`
+              user?.username || user?.name || "User"
+            }&background=18181b&color=ffffff`
           }
-
           alt="avatar"
+          className="w-full h-full object-cover"
         />
+      </div>
+    );
+  };
+
+  const UserCard = ({ item }) => {
+    const user = normalizeUser(item);
+
+    if (!user) return null;
+
+    return (
+      <div className="flex items-center justify-between bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 hover:bg-zinc-900 transition-all duration-300">
+        <div className="flex items-center gap-4">
+          <Avatar item={item} />
+
+          <div>
+            <h3 className="text-white font-semibold text-[15px]">
+              {user.username || getDisplayName(user)}
+            </h3>
+
+            <p className="text-zinc-400 text-sm">
+              {getDisplayName(user)}
+            </p>
+
+            {user?.email && (
+              <p className="text-zinc-500 text-xs mt-1">
+                {user.email}
+              </p>
+            )}
+
+            {user?.newPostCount > 0 && (
+              <div className="mt-2 inline-flex items-center px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <span className="text-emerald-400 text-xs font-medium">
+                  {user.newPostCount} new post
+                  {user.newPostCount > 1 ? "s" : ""}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          onClick={() =>
+            alert(`Message to ${user.username || user.name}`)
+          }
+          className="flex items-center gap-2 bg-white text-black hover:bg-zinc-200 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300"
+        >
+          <FiMessageCircle size={16} />
+          Message
+        </button>
       </div>
     );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center text-2xl">
-        Loading...
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-14 h-14 border-4 border-zinc-700 border-t-white rounded-full animate-spin"></div>
+
+          <p className="text-zinc-400 text-lg">
+            Loading connections...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3">
-        <div className="max-w-2xl mx-auto">
-          {/* Back Button */}
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1 text-white/80 hover:text-white mb-4 transition"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="w-5 h-5"
+      {/* HEADER */}
+      <div className="sticky top-0 z-50 backdrop-blur-xl bg-black/70 border-b border-zinc-800">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          {/* TOP */}
+          <div className="flex items-center gap-4 mb-5">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center transition"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
-              />
-            </svg>
+              <FiArrowLeft size={20} />
+            </button>
 
-            <span>Back</span>
-          </button>
+            <div>
+              <h1 className="text-2xl font-bold">
+                Connections
+              </h1>
 
-          {/* Tabs */}
-          <div className="flex gap-6 mb-5">
+              <p className="text-zinc-400 text-sm">
+                Followers & Following
+              </p>
+            </div>
+          </div>
+
+          {/* TABS */}
+          <div className="flex gap-3 mb-5">
             <button
               onClick={() => setActiveTab("followers")}
-              className={`text-lg font-semibold transition ${
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-medium transition-all duration-300 ${
                 activeTab === "followers"
-                  ? "text-white"
-                  : "text-zinc-400 hover:text-white"
+                  ? "bg-white text-black"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white"
               }`}
             >
-              {counts.followers}{" "}
-              <span className="font-normal">Followers</span>
+              <FiUsers />
+              Followers ({counts.followers})
             </button>
 
             <button
               onClick={() => setActiveTab("following")}
-              className={`text-lg font-semibold transition ${
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-medium transition-all duration-300 ${
                 activeTab === "following"
-                  ? "text-white"
-                  : "text-zinc-400 hover:text-white"
+                  ? "bg-white text-black"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white"
               }`}
             >
-              {counts.following}{" "}
-              <span className="font-normal">Following</span>
+              <FiUserPlus />
+              Following ({counts.following})
             </button>
           </div>
 
-          {/* Search */}
-          <SearchBar
-            placeholder={`Search ${activeTab}...`}
-            onSearch={(term) => setSearchTerm(term)}
-          />
+          {/* SEARCH */}
+          <div className="relative">
+            <FiSearch
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"
+              size={18}
+            />
+
+            <input
+              type="text"
+              placeholder={`Search ${activeTab}...`}
+              value={searchTerm}
+              onChange={(e) =>
+                setSearchTerm(e.target.value)
+              }
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-3 pl-12 pr-4 outline-none focus:border-zinc-600 text-white"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-2xl mx-auto px-4 py-5">
-        {/* Followers */}
+      {/* CONTENT */}
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        {/* FOLLOWERS */}
         {activeTab === "followers" && (
-          <section>
-            <h2 className="text-xl font-semibold mb-3 text-white">
-              Followers
-            </h2>
+          <div className="space-y-4">
+            {filteredFollowers.length > 0 ? (
+              filteredFollowers.map((item, index) => {
+                const user = normalizeUser(item);
 
-            <div className="space-y-4">
-              {filteredFollowers.length > 0 ? (
-                filteredFollowers.map((item) => {
-                  const user = normalizeUser(item);
-
-                  return (
-                    <div
-                      key={user._id}
-                      className="flex items-center justify-between py-2"
-                    >
-                      <div className="flex items-center gap-4">
-                        <Avatar user={item} />
-
-                        <div>
-                          <p className="font-medium text-white">
-                            {user.username || getDisplayName(user)}
-                          </p>
-
-                          <p className="text-sm text-zinc-400">
-                            {getDisplayName(user)}
-                          </p>
-
-                          {user.newPostCount > 0 && (
-                            <span className="inline-block mt-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                              {user.newPostCount} new post
-                              {user.newPostCount !== 1 && "s"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          alert(`Message to ${user.username || user.name}`)
-                        }
-
-                        className="bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium px-4 py-1.5 rounded-full border border-zinc-700 transition"
-                      >
-                        Message
-                      </button>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-8 text-zinc-500">
-                  No followers found
+                return (
+                  <UserCard
+                    key={user?._id || index}
+                    item={item}
+                  />
+                );
+              })
+            ) : (
+              <div className="text-center py-20">
+                <div className="w-20 h-20 rounded-full bg-zinc-900 flex items-center justify-center mx-auto mb-4">
+                  <FiUsers
+                    size={34}
+                    className="text-zinc-600"
+                  />
                 </div>
-              )}
-            </div>
-          </section>
+
+                <h3 className="text-xl font-semibold mb-2">
+                  No Followers Found
+                </h3>
+
+                <p className="text-zinc-500">
+                  Try searching something else
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Following */}
+        {/* FOLLOWING */}
         {activeTab === "following" && (
-          <section>
-            <h2 className="text-xl font-semibold mb-3 text-white">
-              Following
-            </h2>
+          <div className="space-y-4">
+            {filteredFollowing.length > 0 ? (
+              filteredFollowing.map((item, index) => {
+                const user = normalizeUser(item);
 
-            <div className="space-y-4">
-              {filteredFollowing.length > 0 ? (
-                filteredFollowing.map((item) => {
-                  const user = normalizeUser(item);
-
-                  return (
-                    <div
-                      key={user._id}
-                      className="flex items-center justify-between py-2"
-                    >
-                      <div className="flex items-center gap-4">
-                        <Avatar user={item} />
-
-                        <div>
-                          <p className="font-medium text-white">
-                            {user.username || getDisplayName(user)}
-                          </p>
-
-                          <p className="text-sm text-zinc-400">
-                            {getDisplayName(user)}
-                          </p>
-
-                          {user.newPostCount > 0 && (
-                            <span className="inline-block mt-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                              {user.newPostCount} new post
-                              {user.newPostCount !== 1 && "s"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          alert(`Message to ${user.username || user.name}`)
-                        }
-
-                        className="bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium px-4 py-1.5 rounded-full border border-zinc-700 transition"
-                      >
-                        Message
-                      </button>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-8 text-zinc-500">
-                  No following found
+                return (
+                  <UserCard
+                    key={user?._id || index}
+                    item={item}
+                  />
+                );
+              })
+            ) : (
+              <div className="text-center py-20">
+                <div className="w-20 h-20 rounded-full bg-zinc-900 flex items-center justify-center mx-auto mb-4">
+                  <FiUserPlus
+                    size={34}
+                    className="text-zinc-600"
+                  />
                 </div>
-              )}
-            </div>
-          </section>
+
+                <h3 className="text-xl font-semibold mb-2">
+                  No Following Found
+                </h3>
+
+                <p className="text-zinc-500">
+                  Try searching something else
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
