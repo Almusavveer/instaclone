@@ -276,6 +276,36 @@ const checkChatStatus = async (req, res) => {
 //     });
 //   }
 
+// const getMessages = async (req, res) => {
+//   try {
+//     const user = await User.findOne({
+//       email: req.user.email,
+//     });
+
+//     const userId = user._id;
+//     const receiverId = req.params.receiverId;
+
+//     const messages = await Message.find({
+//       $or: [
+//         { sender: userId, receiver: receiverId },
+//         { sender: receiverId, receiver: userId },
+//       ],
+//     })
+//       .populate("sender", "name avatar") // 🔥 MUST FIX
+//       .sort({ createdAt: 1 });
+
+//     return res.json({
+//       success: true,
+//       data: messages,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
+//   }
+// };
 const getMessages = async (req, res) => {
   try {
     const user = await User.findOne({
@@ -291,12 +321,15 @@ const getMessages = async (req, res) => {
         { sender: receiverId, receiver: userId },
       ],
     })
-      .populate("sender", "name avatar") // 🔥 MUST FIX
+      .populate("sender", "name avatar")
       .sort({ createdAt: 1 });
+
+    // 🔥 reverse only before sending response
+    const reversedMessages = messages.reverse();
 
     return res.json({
       success: true,
-      data: messages,
+      data: reversedMessages,
     });
   } catch (error) {
     console.log(error);
@@ -306,7 +339,6 @@ const getMessages = async (req, res) => {
     });
   }
 };
-
 /* =========================
    EXPORT ALL
 ========================= */
