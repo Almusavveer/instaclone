@@ -16,9 +16,13 @@ import { io } from "socket.io-client";
 // ======================================
 // SOCKET
 // ======================================
-const socket = io("http://localhost:3000", {
-  withCredentials: true,
-});
+const socket = io(
+  window.location.origin.replace(":5173", ":3000"),
+  {
+    withCredentials: true,
+    transports: ["websocket", "polling"],
+  }
+);
 
 export default function ChatPage() {
   const [users, setUsers] = useState([]);
@@ -94,7 +98,11 @@ export default function ChatPage() {
             `https://ui-avatars.com/api/?name=${res.data.name}&background=6366f1&color=fff`,
         );
 
-        socket.emit("join", res.data._id);
+        socket.emit("send_message", {
+  ...res.data.data,
+  receiverId: selectedUser.following._id,
+  senderId: myId,
+});
       } catch (err) {
         console.log(err);
       }
@@ -107,14 +115,30 @@ export default function ChatPage() {
   // ONLINE USERS
   // ======================================
   useEffect(() => {
-    socket.on("online_users", (users) => {
-      setOnlineUsers(users);
-    });
+  if (!myId) return;
 
-    return () => {
-      socket.off("online_users");
-    };
-  }, []);
+  socket.connect();
+
+  socket.emit("join", myId);
+
+  socket.on("online_users", (users) => {
+    setOnlineUsers(users);
+  });
+
+  socket.on("receive_message", (newMessage) => {
+    setMessages((prev) => {
+      const exists = prev.find((m) => m._id === newMessage._id);
+      if (exists) return prev;
+      return [...prev, newMessage];
+    });
+  });
+
+  return () => {
+    socket.off("online_users");
+    socket.off("receive_message");
+    socket.disconnect();
+  };
+}, [myId]);
 
   // ======================================
   // RECEIVE MESSAGE
@@ -156,7 +180,7 @@ export default function ChatPage() {
           );
         }
       }
-    });
+    })
 
     return () => {
       socket.off("receive_message");
@@ -388,6 +412,7 @@ export default function ChatPage() {
                         u?.avatar ||
                         `https://ui-avatars.com/api/?name=${u?.name}&background=6366f1&color=fff`
                       }
+
                       alt=""
                     />
 
@@ -452,6 +477,7 @@ export default function ChatPage() {
                       selectedUser.following?.avatar ||
                       `https://ui-avatars.com/api/?name=${selectedUser.following?.name}&background=6366f1&color=fff`
                     }
+
                     alt=""
                     className="w-11 h-11 rounded-full object-cover border-2 border-indigo-500"
                   />
@@ -517,6 +543,7 @@ export default function ChatPage() {
                             selectedUser.following?.avatar ||
                             `https://ui-avatars.com/api/?name=${selectedUser.following?.name}`
                           }
+
                           alt=""
                           className="w-9 h-9 rounded-full object-cover border border-gray-600"
                         />
@@ -538,7 +565,6 @@ export default function ChatPage() {
   {msg.message
     .split(" ")
     .map((word, index) => {
-
       const isLink =
         word.startsWith(
           "http://"
@@ -551,7 +577,6 @@ export default function ChatPage() {
         );
 
       if (isLink) {
-
         let url = word;
 
         // ADD HTTPS IF MISSING
@@ -560,7 +585,6 @@ export default function ChatPage() {
             "www."
           )
         ) {
-
           url =
             "https://" +
             word;
@@ -653,6 +677,7 @@ export default function ChatPage() {
                           src={
                             myAvatar || `https://ui-avatars.com/api/?name=Me`
                           }
+
                           alt=""
                           className="w-9 h-9 rounded-full object-cover border border-indigo-500"
                         />
