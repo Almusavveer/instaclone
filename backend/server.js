@@ -45,7 +45,7 @@ const server =
 // ======================================
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "http://192.168.99.196:5173",
     credentials: true,
   },
 });
@@ -65,7 +65,6 @@ global.onlineUsers =
 io.on(
   "connection",
   (socket) => {
-
     console.log(
       "User Connected:",
       socket.id
@@ -77,7 +76,6 @@ io.on(
     socket.on(
       "join",
       (userId) => {
-
         onlineUsers.set(
           userId,
           socket.id
@@ -106,14 +104,12 @@ io.on(
     socket.on(
       "send_message",
       (data) => {
-
         const receiverSocket =
           onlineUsers.get(
             data.receiver
           );
 
         if (receiverSocket) {
-
           io.to(
             receiverSocket
           ).emit(
@@ -130,17 +126,14 @@ io.on(
     socket.on(
       "disconnect",
       () => {
-
         for (const [
           userId,
           socketId,
         ] of onlineUsers.entries()) {
-
           if (
             socketId ===
             socket.id
           ) {
-
             onlineUsers.delete(
               userId
             );
@@ -184,23 +177,18 @@ const port =
 // ======================================
 const startServer =
   async () => {
-
     try {
-
       await ConDB();
 
       server.listen(
         port,
         () => {
-
           console.log(
             `Server running on port ${port}`
           );
         }
       );
-
     } catch (error) {
-
       console.log(
         "Database connection failed:",
         error

@@ -18,6 +18,7 @@ const postRoute=require("./routes/follow.routes")
 const finduser=require("./routes/finduser.routes")
 const commentRoute=require("./routes/comment.routes")
 const chat=require("./routes/message.routes")
+
 app.use("/api/auth", authRoute)
 app.use("/api/post", postRoute)
 app.use("/api/find", finduser)
