@@ -54,20 +54,25 @@ io.on("connection", (socket) => {
 
   // JOIN USER
   socket.on("join", (userId) => {
-    onlineUsers.set(userId, socket.id);
+  onlineUsers.set(String(userId), socket.id);
 
-    io.emit("online_users", Array.from(onlineUsers.keys()));
-  });
-
+  io.emit("online_users", Array.from(onlineUsers.keys()));
+});
   // SEND MESSAGE
   socket.on("send_message", (data) => {
-    const receiverSocket = onlineUsers.get(data.receiverId);
+  const receiverId = String(data.receiverId);
 
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("receive_message", data);
-    }
+  const receiverSocket = onlineUsers.get(receiverId);
+
+  console.log("SEND MESSAGE DEBUG:", {
+    receiverId,
+    onlineUsers: Array.from(onlineUsers.keys()),
   });
 
+  if (receiverSocket) {
+    io.to(receiverSocket).emit("receive_message", data);
+  }
+});
   // DISCONNECT
   socket.on("disconnect", () => {
     for (const [userId, socketId] of onlineUsers.entries()) {

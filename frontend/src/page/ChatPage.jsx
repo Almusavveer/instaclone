@@ -16,13 +16,10 @@ import { io } from "socket.io-client";
 // ======================================
 // SOCKET
 // ======================================
-const socket = io(
-  window.location.origin.replace(":5173", ":3000"),
-  {
-    withCredentials: true,
-    transports: ["websocket", "polling"],
-  }
-);
+const socket = io(import.meta.env.VITE_SERVER_URL, {
+  withCredentials: true,
+  transports: ["websocket", "polling"],
+});
 
 export default function ChatPage() {
   const [users, setUsers] = useState([]);
